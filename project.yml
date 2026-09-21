@@ -1,0 +1,57 @@
+# XcodeGen の設定。Meilog.xcodeproj はこのファイルから生成する（直接編集しない）
+# 生成: make generate
+name: Meilog
+
+options:
+  bundleIdPrefix: com.marotech
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+  developmentLanguage: ja
+
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "6.0"                 # Swift 6 言語モード
+    SWIFT_STRICT_CONCURRENCY: complete   # Concurrency の完全チェック
+    DEVELOPMENT_TEAM: ""                 # Xcode の Signing で設定される
+
+packages:
+  MeilogCore:
+    path: Packages/MeilogCore
+
+targets:
+  Meilog:
+    type: application
+    platform: iOS
+    sources:
+      - path: MeilogApp
+    dependencies:
+      - package: MeilogCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.marotech.meilog
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+    info:
+      path: MeilogApp/Info.plist
+      properties:
+        CFBundleDisplayName: Meilog
+        UILaunchScreen: {}
+        UIUserInterfaceStyle: Light
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        CFBundleURLTypes:
+          - CFBundleURLName: $(PRODUCT_BUNDLE_IDENTIFIER)
+            CFBundleURLSchemes:
+              - meilog
+        NSCameraUsageDescription: QRコードを読み取って名刺を受け取るために使用します
+        NSLocalNetworkUsageDescription: 近くの相手とアイコン画像を交換するために使用します
+        NSBonjourServices:
+          - _meilog._tcp
+          - _meilog._udp
+    scheme:
+      gatherCoverageData: true

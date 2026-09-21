@@ -1,0 +1,22 @@
+# XcodeGen の生成物
+*.xcodeproj
+*.xcworkspace
+
+# Xcode / SwiftPM
+DerivedData/
+xcuserdata/
+.build/
+.swiftpm/
+*.xcresult
+
+# 配布・デバッグ
+*.ipa
+*.dSYM.zip
+*.app.dSYM
+
+# macOS
+.DS_Store
+
+# エディタ
+*.swp
+*~
