@@ -1,110 +1,181 @@
 # 交換フォーマット仕様（card payload v1）
 
-QR コードに入れるデータの仕様。iOS 版の実装はこの文書に従う。将来ほかの実装を作る場合もこの文書が正。
+AirDrop で送信するカード情報の仕様。iOS 版の実装はこの文書に従う。将来ほかの実装を作る場合もこの文書が正。
 
-## URL
+## ファイル形式
 
-```
-meishi://v1/card?d=<DATA>
-```
+- 拡張子: `.meilog`
+- MIME type: `application/json`
+- UTType: `com.example.meilog.card` (conforming to `public.json`)
+- エンコーディング: UTF-8
+- フォーマット: JSON
 
-- scheme: `meishi`
-- host: バージョン（v1 は `v1`）
-- path: `/card`
-- query `d`: JSON を UTF-8 でエンコードし、base64url（RFC 4648 §5、パディング `=` なし）にしたもの
-- URL 全体で 800 バイトを超える場合、encode はエラー（`tooLarge`）。通常は 300〜400 バイト程度
+## JSON 構造
 
-## JSON
-
-キーは短縮形。未知のキーは無視する。
+すべてのキーは完全な名前を使用する（短縮形は使わない）。未知のキーは無視する。
 
 ```json
 {
-  "c": {
-    "i": "8F1C2A34-5B6D-4E7F-8091-A2B3C4D5E6F7",
-    "n": "Mika",
-    "t": "iOS Engineer",
-    "l": [{ "k": "gh", "v": "mika" }],
-    "s": { "p": 3, "a": 7 }
+  "card": {
+    "id": "8F1C2A34-5B6D-4E7F-8091-A2B3C4D5E6F7",
+    "name": "Mika",
+    "title": "iOS Engineer",
+    "links": [
+      {
+        "kind": "github",
+        "value": "mika"
+      }
+    ],
+    "style": {
+      "paletteID": 3,
+      "patternID": 7
+    },
+    "avatar": null
   },
-  "e": {
-    "i": "0B7E4C21-9A3F-4D5E-8C6B-1F2A3B4C5D6E",
-    "n": "iOSDC Japan 2026",
-    "d": 1789743600,
-    "v": "会場名"
-  },
-  "r": "a1B2c3D4"
+  "event": {
+    "id": "0B7E4C21-9A3F-4D5E-8C6B-1F2A3B4C5D6E",
+    "name": "iOSDC Japan 2026",
+    "date": 1789743600,
+    "venue": "会場名"
+  }
 }
 ```
 
-### c: カード（必須）
+### card: カード（必須）
 
-| キー | 型 | 必須 | 対応するフィールド | 制約 |
-|---|---|---|---|---|
-| `i` | string | ○ | `Card.id` | UUID の文字列 |
-| `n` | string | ○ | `Card.name` | 1〜40 文字 |
-| `t` | string | | `Card.title` | 60 文字まで |
-| `l` | array | | `Card.links` | 5 件まで。省略時は空 |
-| `s` | object | ○ | `Card.style` | `p` = paletteID、`a` = patternID（0 以上の整数） |
+| フィールド | 型 | 必須 | 制約 |
+|---|---|---|---|
+| `id` | string | ○ | UUID の文字列 |
+| `name` | string | ○ | 1〜40 文字 |
+| `title` | string | | 60 文字まで。省略可 |
+| `links` | array | | 5 件まで。省略時は空配列 |
+| `style` | object | ○ | paletteID と patternID（0 以上の整数） |
+| `avatar` | string | | Base64 エンコードされた画像データ（JPEG/PNG）。省略可 |
 
-`l` の要素: `k` = 種類、`v` = 値（100 文字まで）
+#### links の要素
 
-| `k` | 種類 | `v` の形式 |
+| フィールド | 型 | 必須 | 制約 |
+|---|---|---|---|
+| `kind` | string | ○ | リンクの種類 |
+| `value` | string | ○ | 100 文字まで |
+
+**kind の種類と value の形式:**
+
+| kind | 種類 | value の形式 |
 |---|---|---|
-| `gh` | github | ユーザー名 |
-| `x` | x | ユーザー名（`@` なし） |
-| `bs` | bluesky | ハンドル（例: `mika.bsky.social`） |
-| `md` | mastodon | `@user@host` |
-| `web` | web | `https://` で始まる URL |
+| `github` | GitHub | ユーザー名 |
+| `x` | X (Twitter) | ユーザー名（`@` なし） |
+| `web` | Web | `https://` で始まる URL |
 
-未知の `k` を持つ要素は読み飛ばす（エラーにしない）。
+未知の `kind` を持つ要素は読み飛ばす（エラーにしない）。
 
-`avatar` は絶対に入れない。
+#### style オブジェクト
 
-### e: イベント（任意）
+| フィールド | 型 | 必須 | 制約 |
+|---|---|---|---|
+| `paletteID` | number | ○ | 0 以上の整数 |
+| `patternID` | number | ○ | 0 以上の整数 |
 
-| キー | 型 | 必須 | 対応するフィールド | 制約 |
-|---|---|---|---|---|
-| `i` | string | ○ | `MeetupEvent.id` | UUID の文字列 |
-| `n` | string | ○ | `MeetupEvent.name` | 1〜60 文字 |
-| `d` | number | ○ | `MeetupEvent.date` | Unix 時刻（秒） |
-| `v` | string | | `MeetupEvent.venue` | 60 文字まで |
+### event: イベント（任意）
 
-### r: rendezvous（任意）
+イベント情報は省略可能。送信者が現在参加しているイベント情報を含める場合に指定する。
 
-MultipeerConnectivity で画像を受け取るための一時的な値。英数字 8 文字。カード表示のたびに再生成する。
+| フィールド | 型 | 必須 | 制約 |
+|---|---|---|---|
+| `id` | string | ○ | UUID の文字列 |
+| `name` | string | ○ | 1〜60 文字 |
+| `date` | number | ○ | Unix 時刻（秒） |
+| `venue` | string | | 60 文字まで。省略可 |
 
 ## decode のエラー
 
 | エラー | 条件 |
 |---|---|
-| `unsupportedScheme` | scheme が `meishi` 以外 |
-| `unsupportedVersion` | host が `v1` 以外。UI では「アプリを更新してください」と出す |
-| `malformed` | path が違う、`d` がない、base64url / JSON として不正、必須キーの欠落、型の不一致 |
+| `malformed` | JSON として不正、必須キーの欠落、型の不一致 |
 | `constraintViolation` | 文字数・件数などの制約違反 |
+
+## encode の制約
+
+`CardPayload.encode()` は以下の制約をチェックし、違反時は `constraintViolation` エラーを throw する:
+
+- card.name: 1〜40 文字
+- card.title: 60 文字まで（省略可）
+- card.links: 5 件まで
+- card.links[].value: 100 文字まで
+- event.name: 1〜60 文字
+- event.venue: 60 文字まで（省略可）
 
 ## 実装メモ
 
-- 短いキーの DTO は `Payload/` 内の `internal` な型として定義し、ドメインモデルと相互変換する
-- `JSONEncoder` の出力のキー順は保証されないので、encode 結果のバイト列比較でテストしない。テストは「往復」と「ゴールデンベクタの decode」で行う
+- ドメインモデル（Card, MeetupEvent）は Codable であり、そのまま JSON にエンコードされる
+- `JSONEncoder` の出力のキー順は保証されないので、encode 結果のバイト列比較でテストしない
+- テストは「往復」と「ゴールデンベクタの decode」で行う
 - 日付は `secondsSince1970`。decode は整数・小数どちらも受け付ける
+- avatar は Base64 エンコード文字列として扱う（実装では Data として保持）
 
 ## 互換性ルール
 
-- 任意キーの追加は v1 のまま行ってよい（古いアプリは無視する）
-- 必須キーの追加、既存キーの意味変更・削除は v2 にする
-- 将来 `https://<host>/c#<DATA>` 形式を足す場合も、`<DATA>` の中身はこの JSON と同じにする
+- 任意フィールドの追加は後方互換性を保つ（古いアプリは無視する）
+- 必須フィールドの追加、既存フィールドの意味変更・削除は非互換
+- 将来的に Web 版を作る場合も、この JSON フォーマットを使用する
 
 ## ゴールデンベクタ
 
-上の JSON 例から `e.v` を除いたものをコンパクトに直列化した URL（323 バイト）:
+イベントなしの最小構成（avatar も省略）:
 
+```json
+{
+  "card": {
+    "id": "8F1C2A34-5B6D-4E7F-8091-A2B3C4D5E6F7",
+    "name": "Mika",
+    "title": "iOS Engineer",
+    "links": [
+      {
+        "kind": "github",
+        "value": "mika"
+      }
+    ],
+    "style": {
+      "paletteID": 3,
+      "patternID": 7
+    }
+  }
+}
 ```
-meishi://v1/card?d=eyJjIjp7ImkiOiI4RjFDMkEzNC01QjZELTRFN0YtODA5MS1BMkIzQzRENUU2RjciLCJuIjoiTWlrYSIsInQiOiJpT1MgRW5naW5lZXIiLCJsIjpbeyJrIjoiZ2giLCJ2IjoibWlrYSJ9XSwicyI6eyJwIjozLCJhIjo3fX0sImUiOnsiaSI6IjBCN0U0QzIxLTlBM0YtNEQ1RS04QzZCLTFGMkEzQjRDNUQ2RSIsIm4iOiJpT1NEQyBKYXBhbiAyMDI2IiwiZCI6MTc4OTc0MzYwMH0sInIiOiJhMUIyYzNENCJ9
+
+decode すると次になること:
+
+- card: id `8F1C2A34-5B6D-4E7F-8091-A2B3C4D5E6F7`、name `Mika`、title `iOS Engineer`、links `[github: mika]`、style paletteID 3 / patternID 7、avatar nil
+- event: nil
+
+イベントありの構成:
+
+```json
+{
+  "card": {
+    "id": "8F1C2A34-5B6D-4E7F-8091-A2B3C4D5E6F7",
+    "name": "Mika",
+    "title": "iOS Engineer",
+    "links": [
+      {
+        "kind": "github",
+        "value": "mika"
+      }
+    ],
+    "style": {
+      "paletteID": 3,
+      "patternID": 7
+    }
+  },
+  "event": {
+    "id": "0B7E4C21-9A3F-4D5E-8C6B-1F2A3B4C5D6E",
+    "name": "iOSDC Japan 2026",
+    "date": 1789743600
+  }
+}
 ```
 
 decode すると次になること:
 
 - card: id `8F1C2A34-5B6D-4E7F-8091-A2B3C4D5E6F7`、name `Mika`、title `iOS Engineer`、links `[github: mika]`、style paletteID 3 / patternID 7、avatar nil
 - event: id `0B7E4C21-9A3F-4D5E-8C6B-1F2A3B4C5D6E`、name `iOSDC Japan 2026`、date 1789743600（2026-09-19 00:00 JST）、venue nil
-- rendezvous: `a1B2c3D4`

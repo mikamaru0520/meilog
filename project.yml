@@ -45,15 +45,12 @@ targets:
           UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        CFBundleURLTypes:
-          - CFBundleURLName: $(PRODUCT_BUNDLE_IDENTIFIER)
-            CFBundleURLSchemes:
-              - meilog
-        NSCameraUsageDescription: QRコードを読み取って名刺を受け取るために使用します（現在は使用していません）
-        NSLocalNetworkUsageDescription: 近くの相手とアイコン画像を交換するために使用します（現在は使用していません）
-        NSBonjourServices:
-          - _meilog._tcp
-          - _meilog._udp
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Meilog Card
+            LSItemContentTypes:
+              - com.example.meilog.card
+            LSHandlerRank: Owner
+        LSSupportsOpeningDocumentsInPlace: false
         UTExportedTypeDeclarations:
           - UTTypeIdentifier: com.example.meilog.card
             UTTypeDescription: Meilog Card

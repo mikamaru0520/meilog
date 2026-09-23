@@ -13,8 +13,21 @@ struct AirDropCardSender {
         // JSON にエンコード
         let data = try CardPayload.encode(envelope)
 
+        // ファイル名をサニタイズ（/, \, :, * などを除去）
+        let sanitizedName = envelope.card.name
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: "\\", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+            .replacingOccurrences(of: "*", with: "-")
+            .replacingOccurrences(of: "?", with: "-")
+            .replacingOccurrences(of: "\"", with: "-")
+            .replacingOccurrences(of: "<", with: "-")
+            .replacingOccurrences(of: ">", with: "-")
+            .replacingOccurrences(of: "|", with: "-")
+            .trimmingCharacters(in: .whitespaces)
+
         // 一時ディレクトリにファイルを作成
-        let fileName = "\(envelope.card.name).meilog"
+        let fileName = "\(sanitizedName).meilog"
         let tempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(fileName)
 
@@ -38,6 +51,9 @@ struct AirDropSheet: UIViewControllerRepresentable {
 
         // 完了時のハンドラ
         activityVC.completionWithItemsHandler = { _, completed, _, _ in
+            // 一時ファイルをクリーンアップ
+            try? FileManager.default.removeItem(at: url)
+
             if completed {
                 // 送信完了
                 dismiss()
