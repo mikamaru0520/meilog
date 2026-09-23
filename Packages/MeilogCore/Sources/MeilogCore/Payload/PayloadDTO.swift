@@ -122,8 +122,6 @@ extension LinkDTO {
         switch kind {
         case "gh": linkKind = .github
         case "x": linkKind = .x
-        case "bs": linkKind = .bluesky
-        case "md": linkKind = .mastodon
         case "web": linkKind = .web
         default: return nil  // 未知のkindは読み飛ばす
         }
@@ -179,8 +177,6 @@ extension Link {
         switch kind {
         case .github: kindString = "gh"
         case .x: kindString = "x"
-        case .bluesky: kindString = "bs"
-        case .mastodon: kindString = "md"
         case .web: kindString = "web"
         }
         return LinkDTO(kind: kindString, value: value)

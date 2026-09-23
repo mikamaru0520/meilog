@@ -49,10 +49,18 @@ targets:
           - CFBundleURLName: $(PRODUCT_BUNDLE_IDENTIFIER)
             CFBundleURLSchemes:
               - meilog
-        NSCameraUsageDescription: QRコードを読み取って名刺を受け取るために使用します
-        NSLocalNetworkUsageDescription: 近くの相手とアイコン画像を交換するために使用します
+        NSCameraUsageDescription: QRコードを読み取って名刺を受け取るために使用します（現在は使用していません）
+        NSLocalNetworkUsageDescription: 近くの相手とアイコン画像を交換するために使用します（現在は使用していません）
         NSBonjourServices:
           - _meilog._tcp
           - _meilog._udp
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.example.meilog.card
+            UTTypeDescription: Meilog Card
+            UTTypeConformsTo:
+              - public.json
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - meilog
     scheme:
       gatherCoverageData: true

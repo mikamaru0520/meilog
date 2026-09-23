@@ -28,6 +28,13 @@ struct EncounterDetailView: View {
     var body: some View {
         if let encounter = encounter {
             List {
+            // カードプレビュー
+            Section {
+                ReceivedCardPreview(card: encounter.card, avatarState: encounter.avatarState)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+            }
+
             // カード情報
             Section {
                 VStack(alignment: .leading, spacing: Space.sm) {
@@ -54,16 +61,6 @@ struct EncounterDetailView: View {
                         }
                         .padding(.top, Space.xxs)
                     }
-
-                    #if DEBUG
-                    // スタイル（デバッグ用）
-                    HStack {
-                        Label("パレット: \(encounter.card.style.paletteID)", systemImage: "paintpalette")
-                        Label("パターン: \(encounter.card.style.patternID)", systemImage: "square.grid.2x2")
-                    }
-                    .font(.caption2)
-                    .foregroundStyle(Colors.textTertiary)
-                    #endif
                 }
                 .padding(.vertical, Space.xs)
             } header: {
@@ -132,12 +129,161 @@ struct EncounterDetailView: View {
         let iconName: String = switch kind {
         case .github: "github"
         case .x: "xmark.app"
-        case .bluesky: "cloud"
-        case .mastodon: "mastodon"
         case .web: "globe"
         }
         return Image(systemName: iconName)
             .foregroundStyle(.secondary)
+    }
+}
+
+/// 受け取ったカードのプレビュー
+private struct ReceivedCardPreview: View {
+    let card: Card
+    let avatarState: AvatarState
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: Radius.card)
+            .fill(
+                LinearGradient(
+                    colors: Palette.colors(for: card.style.paletteID).map { $0.opacity(0.4) },
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .aspectRatio(1.586, contentMode: .fit)
+            .overlay {
+                // 模様レイヤー
+                if card.style.patternID > 0 {
+                    CardPatternOverlay(patternID: card.style.patternID)
+                        .clipShape(RoundedRectangle(cornerRadius: Radius.card))
+                }
+            }
+            .overlay {
+                VStack(spacing: Space.xs) {
+                    // アバター
+                    Circle()
+                        .fill(Colors.textPrimary)
+                        .frame(width: 60, height: 60)
+                        .overlay {
+                            if case .received = avatarState,
+                               let avatarData = card.avatar,
+                               let uiImage = UIImage(data: avatarData) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .clipShape(Circle())
+                            } else {
+                                Text(card.name.prefix(1))
+                                    .font(Typography.cardName)
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        .overlay {
+                            if case .notReceived = avatarState {
+                                ProgressView()
+                                    .tint(.white)
+                            }
+                        }
+
+                    // 名前と肩書き
+                    if !card.name.isEmpty {
+                        Text(card.name)
+                            .font(Typography.cardName)
+                    }
+                    if let title = card.title, !title.isEmpty {
+                        Text(title)
+                            .font(Typography.cardTitle)
+                            .foregroundStyle(Colors.textSecondary)
+                    }
+
+                    // リンク表示
+                    ForEach(card.links.prefix(3), id: \.value) { link in
+                        Text(link.value)
+                            .font(Typography.cardLink)
+                            .foregroundStyle(Colors.textSecondary)
+                    }
+                }
+                .padding(Space.md)
+            }
+            .padding(.horizontal, Space.md)
+            .padding(.vertical, Space.lg)
+    }
+}
+
+/// カード用模様オーバーレイ
+private struct CardPatternOverlay: View {
+    let patternID: Int
+
+    var body: some View {
+        GeometryReader { geometry in
+            Canvas { context, size in
+                switch patternID {
+                case 1: // ドット
+                    let spacing: CGFloat = Space.md
+                    for x in stride(from: 0, to: size.width, by: spacing) {
+                        for y in stride(from: 0, to: size.height, by: spacing) {
+                            let point = CGPoint(x: x, y: y)
+                            context.fill(
+                                Circle().path(in: CGRect(x: point.x - 1.5, y: point.y - 1.5, width: 3, height: 3)),
+                                with: .color(.primary.opacity(0.15))
+                            )
+                        }
+                    }
+                case 2: // 方眼
+                    let spacing: CGFloat = 20
+                    for x in stride(from: 0, to: size.width, by: spacing) {
+                        context.stroke(
+                            Path { path in
+                                path.move(to: CGPoint(x: x, y: 0))
+                                path.addLine(to: CGPoint(x: x, y: size.height))
+                            },
+                            with: .color(.primary.opacity(0.1)),
+                            lineWidth: 0.5
+                        )
+                    }
+                    for y in stride(from: 0, to: size.height, by: spacing) {
+                        context.stroke(
+                            Path { path in
+                                path.move(to: CGPoint(x: 0, y: y))
+                                path.addLine(to: CGPoint(x: size.width, y: y))
+                            },
+                            with: .color(.primary.opacity(0.1)),
+                            lineWidth: 0.5
+                        )
+                    }
+                case 3: // 斜線
+                    let spacing: CGFloat = Space.md
+                    for offset in stride(from: -size.height, to: size.width + size.height, by: spacing) {
+                        context.stroke(
+                            Path { path in
+                                path.move(to: CGPoint(x: offset, y: 0))
+                                path.addLine(to: CGPoint(x: offset + size.height, y: size.height))
+                            },
+                            with: .color(.primary.opacity(0.1)),
+                            lineWidth: 1
+                        )
+                    }
+                case 4: // 波紋
+                    let centerX = size.width / 2
+                    let centerY = size.height / 2
+                    for radius in stride(from: 20, to: max(size.width, size.height), by: 30) {
+                        context.stroke(
+                            Circle().path(in: CGRect(
+                                x: centerX - radius,
+                                y: centerY - radius,
+                                width: radius * 2,
+                                height: radius * 2
+                            )),
+                            with: .color(.primary.opacity(0.08)),
+                            lineWidth: 1
+                        )
+                    }
+                default:
+                    break
+                }
+            }
+        }
+        .allowsHitTesting(false)
     }
 }
 

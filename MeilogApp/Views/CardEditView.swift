@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 import struct MeilogCore.Link
 import struct MeilogCore.Card
 import struct MeilogCore.CardStyle
@@ -47,26 +48,7 @@ struct CardEditView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // ナビゲーションバー
-            HStack {
-                Button("キャンセル") {
-                    dismiss()
-                }
-                Spacer()
-                Text("カードを編集")
-                    .font(Typography.sectionHeader)
-                Spacer()
-                Button("保存") {
-                    saveCard()
-                    dismiss()
-                }
-                .disabled(!isValid)
-            }
-            .padding(Space.md)
-
-            Divider()
-
+        NavigationStack {
             // コンテンツ
             ScrollView {
                 VStack(spacing: Space.lg) {
@@ -123,6 +105,22 @@ struct CardEditView: View {
                     .disabled(!isValid)
                     .padding(.horizontal, Space.md)
                     .padding(.bottom, Space.md)
+                }
+            }
+            .navigationTitle("カードを編集")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("キャンセル") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") {
+                        saveCard()
+                        dismiss()
+                    }
+                    .disabled(!isValid)
                 }
             }
         }
@@ -301,6 +299,8 @@ private struct ProfileSection: View {
     @Binding var title: String
     @Binding var avatarData: Data?
 
+    @State private var photoPickerItem: PhotosPickerItem?
+
     var body: some View {
         VStack(alignment: .leading, spacing: Space.md) {
             Text("プロフィール")
@@ -325,12 +325,17 @@ private struct ProfileSection: View {
                         }
                     }
 
-                Button {
-                    // TODO: 写真選択
-                } label: {
+                PhotosPicker(selection: $photoPickerItem, matching: .images) {
                     Label("写真を選ぶ", systemImage: "photo")
                 }
                 .buttonStyle(.bordered)
+                .onChange(of: photoPickerItem) { _, newItem in
+                    Task {
+                        if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                            avatarData = data
+                        }
+                    }
+                }
 
                 if avatarData != nil {
                     Button("削除") {
@@ -404,11 +409,9 @@ private struct LinksSection: View {
                     Picker("", selection: $link.kind) {
                         Text("GitHub").tag(Link.Kind.github)
                         Text("X").tag(Link.Kind.x)
-                        Text("Bluesky").tag(Link.Kind.bluesky)
-                        Text("Mastodon").tag(Link.Kind.mastodon)
                         Text("Web").tag(Link.Kind.web)
                     }
-                    .frame(width: 120)
+                    .frame(width: 100)
 
                     TextField("yui-sato", text: $link.value)
                         .textFieldStyle(.roundedBorder)

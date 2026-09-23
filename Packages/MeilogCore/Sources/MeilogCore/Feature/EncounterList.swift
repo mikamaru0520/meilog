@@ -229,11 +229,6 @@ public func reduce(
 
             // 永続化 Effect を発行
             effects.append(.persist(encounter))
-
-            // rendezvous があればアイコンをリクエスト
-            if let rendezvous = envelope.rendezvous {
-                effects.append(.requestAvatar(encounterID: encounter.id, rendezvous: rendezvous))
-            }
         } else {
             // 新しい Encounter を作成
             let meeting = createMeeting(
@@ -249,7 +244,7 @@ public func reduce(
                 card: envelope.card,
                 meetings: [meeting],
                 note: "",
-                avatarState: .notReceived
+                avatarState: envelope.card.avatar != nil ? .received : .unavailable
             )
 
             // encounters の先頭に追加（新しい順）
@@ -257,11 +252,6 @@ public func reduce(
 
             // 永続化 Effect を発行
             effects.append(.persist(encounter))
-
-            // rendezvous があればアイコンをリクエスト
-            if let rendezvous = envelope.rendezvous {
-                effects.append(.requestAvatar(encounterID: encounter.id, rendezvous: rendezvous))
-            }
         }
 
     case let .avatarArrived(encounterID, data):

@@ -37,8 +37,6 @@ public struct Link: Codable, Equatable, Hashable, Sendable {
     public enum Kind: String, Codable, Sendable {
         case github
         case x
-        case bluesky
-        case mastodon
         case web
     }
 

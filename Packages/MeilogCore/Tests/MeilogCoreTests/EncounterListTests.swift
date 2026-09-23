@@ -190,7 +190,7 @@ struct EncounterListTests {
         let eventDate = date(2026, 1, 1)
         let event = makeEvent(name: "Swift勉強会", date: eventDate)
         let card = makeCard(name: "Alice")
-        let envelope = CardEnvelope(card: card, event: event, rendezvous: nil)
+        let envelope = CardEnvelope(card: card, event: event)
 
         let (newState, effects) = reduce(
             state,
@@ -218,7 +218,7 @@ struct EncounterListTests {
         let state = EncounterListState(recentEvent: recentEvent)
 
         let card = makeCard(name: "Bob")
-        let envelope = CardEnvelope(card: card, event: nil, rendezvous: nil)
+        let envelope = CardEnvelope(card: card, event: nil)
 
         let (newState, _) = reduce(
             state,
@@ -243,7 +243,7 @@ struct EncounterListTests {
         let state = EncounterListState(recentEvent: recentEvent)
 
         let card = makeCard(name: "Charlie")
-        let envelope = CardEnvelope(card: card, event: nil, rendezvous: nil)
+        let envelope = CardEnvelope(card: card, event: nil)
 
         let differentDate = date(2026, 1, 2)  // 1日後
 
@@ -268,7 +268,7 @@ struct EncounterListTests {
         let state = EncounterListState(recentEvent: nil)
 
         let card = makeCard(name: "Dave")
-        let envelope = CardEnvelope(card: card, event: nil, rendezvous: nil)
+        let envelope = CardEnvelope(card: card, event: nil)
 
         let (newState, _) = reduce(
             state,
@@ -305,7 +305,7 @@ struct EncounterListTests {
 
         // 同じ card.id で名前が更新されたカード
         let newCard = makeCard(id: cardID, name: "Alice v2")
-        let envelope = CardEnvelope(card: newCard, event: nil, rendezvous: nil)
+        let envelope = CardEnvelope(card: newCard, event: nil)
 
         let (newState, _) = reduce(
             state,
@@ -345,7 +345,7 @@ struct EncounterListTests {
 
         // 異なる card.id
         let newCard = makeCard(id: UUID(), name: "Bob")
-        let envelope = CardEnvelope(card: newCard, event: nil, rendezvous: nil)
+        let envelope = CardEnvelope(card: newCard, event: nil)
 
         let (newState, _) = reduce(
             state,
@@ -358,22 +358,6 @@ struct EncounterListTests {
         // 新しい Encounter が先頭に追加される
         #expect(newState.encounters[0].card.name == "Bob")
         #expect(newState.encounters[1].card.name == "Alice")
-    }
-
-    @Test("rendezvous があればアイコンリクエスト Effect が発行される")
-    func cardReceived_withRendezvous_emitsRequestAvatarEffect() {
-        let state = EncounterListState()
-        let card = makeCard(name: "Alice")
-        let envelope = CardEnvelope(card: card, event: nil, rendezvous: "abc12345")
-
-        let (newState, effects) = reduce(
-            state,
-            .cardReceived(envelope, now: date(2026, 1, 1), newID: UUID(), calendar: calendar)
-        )
-
-        let encounterID = newState.encounters[0].id
-
-        #expect(effects.contains(.requestAvatar(encounterID: encounterID, rendezvous: "abc12345")))
     }
 
     // MARK: - avatarArrived のテスト
