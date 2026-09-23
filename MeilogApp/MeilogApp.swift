@@ -30,6 +30,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct MeilogApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @State private var showingSplash = true
     let modelContainer: ModelContainer
 
     init() {
@@ -42,8 +43,21 @@ struct MeilogApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .modelContainer(modelContainer)
+            ZStack {
+                RootView()
+                    .modelContainer(modelContainer)
+                    .opacity(showingSplash ? 0 : 1)
+
+                if showingSplash {
+                    SplashView {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showingSplash = false
+                        }
+                    }
+                    .transition(.opacity)
+                    .zIndex(1)
+                }
+            }
         }
     }
 }

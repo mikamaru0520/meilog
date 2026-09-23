@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import UIKit
 import MeilogCore
 
@@ -6,11 +7,14 @@ import MeilogCore
 struct QRCodeModalView: View {
     @Environment(\.dismiss) private var dismiss
     let store: MyCardStore
+    @Bindable var encounterListStore: EncounterListStore
 
     @State private var qrImage: UIImage?
     @State private var isGenerating = false
     @State private var rendezvous: String?
     @State private var originalBrightness: CGFloat = UIScreen.main.brightness
+    @State private var scanner = QRScanner()
+    @State private var showingScanner = false
 
     var body: some View {
         ZStack {
@@ -99,7 +103,7 @@ struct QRCodeModalView: View {
                                     .foregroundStyle(Colors.warning)
                                 Text("QR コードの生成に失敗しました")
                                 Button("再試行") {
-                                    Task {
+                                    Task { @MainActor in
                                         await generateQRCode()
                                     }
                                 }
@@ -152,7 +156,7 @@ struct QRCodeModalView: View {
                 VStack(spacing: 0) {
                     Divider()
                     Button {
-                        // TODO: QR読み取り画面へ
+                        showingScanner = true
                     } label: {
                         Label("相手のQRを読み取る", systemImage: "qrcode.viewfinder")
                             .font(Typography.button)
@@ -172,16 +176,21 @@ struct QRCodeModalView: View {
             }
         }
         .preferredColorScheme(.light) // 常にライトモード
-        .task {
-            // 画面表示時の処理
-            await onAppear()
+        .onAppear {
+            // 画面表示時の処理（同期で即座に完了）
+            setupScreen()
         }
         .onDisappear {
-            onDisappear()
+            teardownScreen()
+        }
+        .sheet(isPresented: $showingScanner) {
+            NavigationStack {
+                QRScannerView(scanner: scanner, store: encounterListStore)
+            }
         }
     }
 
-    private func onAppear() async {
+    private func setupScreen() {
         // 元の明るさを保存
         originalBrightness = UIScreen.main.brightness
 
@@ -194,8 +203,10 @@ struct QRCodeModalView: View {
         // rendezvous を生成（MultipeerConnectivity 用）
         rendezvous = Rendezvous.generate()
 
-        // QR コード生成
-        await generateQRCode()
+        // QR コード生成を別タスクで実行（UIをブロックしない）
+        Task { @MainActor in
+            await generateQRCode()
+        }
 
         // TODO: MultipeerConnectivity でアドバタイズ開始
         // if let rendezvous = rendezvous, let avatar = store.myCard?.avatar {
@@ -203,7 +214,7 @@ struct QRCodeModalView: View {
         // }
     }
 
-    private func onDisappear() {
+    private func teardownScreen() {
         // 明るさを元に戻す
         UIScreen.main.brightness = originalBrightness
 
@@ -214,11 +225,12 @@ struct QRCodeModalView: View {
         // await avatarAdvertiser.stop()
     }
 
+    @MainActor
     private func generateQRCode() async {
         guard let card = store.myCard else { return }
 
+        // UIを更新してからバックグラウンド処理を開始
         isGenerating = true
-        defer { isGenerating = false }
 
         let envelope = CardEnvelope(
             card: card,
@@ -229,16 +241,25 @@ struct QRCodeModalView: View {
         do {
             let image = try await QRCodeGenerator.generateQRCode(from: envelope)
             qrImage = image
+            isGenerating = false
         } catch {
             print("Failed to generate QR code: \(error.localizedDescription)")
             qrImage = nil
+            isGenerating = false
         }
     }
 }
 
 #Preview("カードあり") {
-    let store = MyCardStore()
-    store.saveMyCard(Card(
+    @Previewable @State var myCardStore = MyCardStore()
+    @Previewable @State var encounterListStore = EncounterListStore(
+        repository: SwiftDataEncounterRepository(
+            modelContainer: try! ModelContainer(for: EncounterEntity.self)
+        ),
+        myCardStore: MyCardStore()
+    )
+
+    let _ = myCardStore.saveMyCard(Card(
         id: UUID(),
         name: "山田太郎",
         title: "iOS Developer",
@@ -246,5 +267,9 @@ struct QRCodeModalView: View {
         style: CardStyle(paletteID: 0, patternID: 0),
         avatar: nil
     ))
-    return QRCodeModalView(store: store)
+
+    QRCodeModalView(
+        store: myCardStore,
+        encounterListStore: encounterListStore
+    )
 }

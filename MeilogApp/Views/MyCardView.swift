@@ -1,10 +1,12 @@
 import SwiftUI
+import SwiftData
 import OSLog
 import MeilogCore
 
 /// 自分のカード表示画面
 struct MyCardView: View {
     @Bindable var store: MyCardStore
+    @Bindable var encounterListStore: EncounterListStore
     @State private var showingEdit = false
     @State private var showingQR = false
 
@@ -69,7 +71,10 @@ struct MyCardView: View {
                     CardEditView(store: store)
                 }
                 .fullScreenCover(isPresented: $showingQR) {
-                    QRCodeModalView(store: store)
+                    QRCodeModalView(
+                        store: store,
+                        encounterListStore: encounterListStore
+                    )
                 }
             } else {
                 // 初回起動時
@@ -247,8 +252,15 @@ private struct CardPatternOverlay: View {
 }
 
 #Preview("カードあり") {
-    let store = MyCardStore()
-    store.saveMyCard(Card(
+    @Previewable @State var myCardStore = MyCardStore()
+    @Previewable @State var encounterListStore = EncounterListStore(
+        repository: SwiftDataEncounterRepository(
+            modelContainer: try! ModelContainer(for: EncounterEntity.self)
+        ),
+        myCardStore: MyCardStore()
+    )
+
+    let _ = myCardStore.saveMyCard(Card(
         id: UUID(),
         name: "山田太郎",
         title: "iOS Developer",
@@ -256,9 +268,24 @@ private struct CardPatternOverlay: View {
         style: CardStyle(paletteID: 0, patternID: 0),
         avatar: nil
     ))
-    return MyCardView(store: store)
+
+    MyCardView(
+        store: myCardStore,
+        encounterListStore: encounterListStore
+    )
 }
 
 #Preview("初回起動") {
-    MyCardView(store: MyCardStore())
+    @Previewable @State var myCardStore = MyCardStore()
+    @Previewable @State var encounterListStore = EncounterListStore(
+        repository: SwiftDataEncounterRepository(
+            modelContainer: try! ModelContainer(for: EncounterEntity.self)
+        ),
+        myCardStore: MyCardStore()
+    )
+
+    MyCardView(
+        store: myCardStore,
+        encounterListStore: encounterListStore
+    )
 }

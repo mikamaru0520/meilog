@@ -9,10 +9,20 @@ struct RootView: View {
 
     var body: some View {
         TabView {
-            MyCardView(store: myCardStore)
+            if let encounterListStore = encounterListStore {
+                MyCardView(
+                    store: myCardStore,
+                    encounterListStore: encounterListStore
+                )
                 .tabItem {
                     Label("カード", systemImage: "person.crop.rectangle")
                 }
+            } else {
+                ProgressView()
+                    .tabItem {
+                        Label("カード", systemImage: "person.crop.rectangle")
+                    }
+            }
 
             if let encounterListStore = encounterListStore {
                 EncounterListView(store: encounterListStore)

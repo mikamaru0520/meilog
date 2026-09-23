@@ -20,7 +20,10 @@ final class QRScanner: NSObject {
 
     @ObservationIgnored
     nonisolated(unsafe) private let captureSession = AVCaptureSession()
-    private var videoPreviewLayer: AVCaptureVideoPreviewLayer?
+
+    @ObservationIgnored
+    nonisolated(unsafe) private var videoPreviewLayer: AVCaptureVideoPreviewLayer?
+
     private var isSessionConfigured = false
 
     /// カメラ権限をリクエストする
@@ -40,64 +43,71 @@ final class QRScanner: NSObject {
         }
     }
 
+    /// キャプチャセッションをセットアップする
+    private func setupCaptureSessionIfNeeded() throws {
+        guard !isSessionConfigured else { return }
+
+        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else {
+            throw QRScannerError.noCameraAvailable
+        }
+
+        let videoInput: AVCaptureDeviceInput
+        do {
+            videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
+        } catch {
+            throw QRScannerError.inputFailed
+        }
+
+        captureSession.beginConfiguration()
+
+        if captureSession.canAddInput(videoInput) {
+            captureSession.addInput(videoInput)
+        } else {
+            captureSession.commitConfiguration()
+            throw QRScannerError.inputFailed
+        }
+
+        let metadataOutput = AVCaptureMetadataOutput()
+
+        if captureSession.canAddOutput(metadataOutput) {
+            captureSession.addOutput(metadataOutput)
+            metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
+            metadataOutput.metadataObjectTypes = [.qr]
+        } else {
+            captureSession.commitConfiguration()
+            throw QRScannerError.outputFailed
+        }
+
+        captureSession.commitConfiguration()
+        isSessionConfigured = true
+    }
+
     /// スキャンを開始する
     func startScanning() throws {
         guard authorizationStatus == .authorized else {
             throw QRScannerError.notAuthorized
         }
 
-        // セッションがまだ設定されていない場合のみ設定
-        if !isSessionConfigured {
-            guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else {
-                throw QRScannerError.noCameraAvailable
+        // セッションをセットアップ
+        try setupCaptureSessionIfNeeded()
+
+        // セッションを開始（バックグラウンドスレッドで）
+        if !captureSession.isRunning {
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                self?.captureSession.startRunning()
             }
-
-            let videoInput: AVCaptureDeviceInput
-            do {
-                videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
-            } catch {
-                throw QRScannerError.inputFailed
-            }
-
-            captureSession.beginConfiguration()
-
-            if captureSession.canAddInput(videoInput) {
-                captureSession.addInput(videoInput)
-            } else {
-                captureSession.commitConfiguration()
-                throw QRScannerError.inputFailed
-            }
-
-            let metadataOutput = AVCaptureMetadataOutput()
-
-            if captureSession.canAddOutput(metadataOutput) {
-                captureSession.addOutput(metadataOutput)
-                metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
-                metadataOutput.metadataObjectTypes = [.qr]
-            } else {
-                captureSession.commitConfiguration()
-                throw QRScannerError.outputFailed
-            }
-
-            captureSession.commitConfiguration()
-            isSessionConfigured = true
-        }
-
-        // セッションを開始
-        DispatchQueue.global(qos: .userInitiated).async { [captureSession] in
-            captureSession.startRunning()
         }
     }
 
     /// スキャンを停止する
     func stopScanning() {
-        DispatchQueue.global(qos: .userInitiated).async { [captureSession] in
+        if captureSession.isRunning {
             captureSession.stopRunning()
         }
     }
 
     /// プレビューレイヤーを取得する
-    func getPreviewLayer() -> AVCaptureVideoPreviewLayer {
+    nonisolated func getPreviewLayer() -> AVCaptureVideoPreviewLayer {
         if let existing = videoPreviewLayer {
             return existing
         }
@@ -106,6 +116,11 @@ final class QRScanner: NSObject {
         layer.videoGravity = .resizeAspectFill
         videoPreviewLayer = layer
         return layer
+    }
+
+    /// カメラセッションを準備する（MainActorで呼ぶ）
+    func setupSession() throws {
+        try setupCaptureSessionIfNeeded()
     }
 
     /// スキャン結果をクリアする

@@ -46,6 +46,8 @@ struct QRScannerView: View {
 
             if scanner.authorizationStatus == .authorized {
                 do {
+                    // セッションをセットアップしてから開始
+                    try scanner.setupSession()
                     try scanner.startScanning()
                 } catch {
                     self.error = error
@@ -103,26 +105,40 @@ struct QRScannerView: View {
     }
 }
 
+/// カメラプレビュー用のカスタムUIView
+private class CameraPreviewView: UIView {
+    var previewLayer: AVCaptureVideoPreviewLayer?
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
+        // レイアウト時にプレビューレイヤーのframeを更新
+        if let previewLayer = previewLayer {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            previewLayer.frame = bounds
+            CATransaction.commit()
+        }
+    }
+}
+
 /// カメラプレビュー
 private struct CameraPreview: UIViewRepresentable {
     let scanner: QRScanner
 
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView(frame: .zero)
+    func makeUIView(context: Context) -> CameraPreviewView {
+        let view = CameraPreviewView(frame: .zero)
         view.backgroundColor = .black
 
         let previewLayer = scanner.getPreviewLayer()
-        // frame は updateUIView で設定する（makeUIView 時は bounds が .zero）
         view.layer.addSublayer(previewLayer)
+        view.previewLayer = previewLayer
 
         return view
     }
 
-    func updateUIView(_ uiView: UIView, context: Context) {
-        // プレビューレイヤーの frame を view の bounds に合わせる
-        if let previewLayer = uiView.layer.sublayers?.first as? AVCaptureVideoPreviewLayer {
-            previewLayer.frame = uiView.bounds
-        }
+    func updateUIView(_ uiView: CameraPreviewView, context: Context) {
+        // layoutSubviews で自動的に更新されるため、ここでは何もしない
     }
 }
 
