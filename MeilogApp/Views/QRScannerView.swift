@@ -112,13 +112,14 @@ private struct CameraPreview: UIViewRepresentable {
         view.backgroundColor = .black
 
         let previewLayer = scanner.getPreviewLayer()
-        previewLayer.frame = view.bounds
+        // frame は updateUIView で設定する（makeUIView 時は bounds が .zero）
         view.layer.addSublayer(previewLayer)
 
         return view
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
+        // プレビューレイヤーの frame を view の bounds に合わせる
         if let previewLayer = uiView.layer.sublayers?.first as? AVCaptureVideoPreviewLayer {
             previewLayer.frame = uiView.bounds
         }

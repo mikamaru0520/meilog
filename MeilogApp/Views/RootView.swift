@@ -27,6 +27,10 @@ struct RootView: View {
             }
         }
         .task {
+            // MyCardStore のロード
+            myCardStore.send(.appeared)
+
+            // EncounterListStore の初期化
             if encounterListStore == nil {
                 let repository = SwiftDataEncounterRepository(
                     modelContainer: modelContext.container
