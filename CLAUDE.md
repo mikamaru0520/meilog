@@ -1,11 +1,11 @@
 # Meilog — 勉強会で会った人を記録する名刺交換アプリ
 
-iOS ネイティブ（SwiftUI）、自前 MVI、サーバーなし。QR コードでカードを交換し、アイコン画像は MultipeerConnectivity で送る。
+iOS ネイティブ（SwiftUI）、自前 MVI、サーバーなし。AirDrop でカードを交換する。
 設計の全体像は下の design.md に書いてある。判断に迷ったら必ずそこに戻ること。
 
 @docs/design.md
 
-交換フォーマット（QR の中身）の仕様は `docs/card-payload.md`。`Payload/` 配下を触る前に必ず読むこと。
+交換フォーマットの仕様は `docs/card-payload.md`。`Payload/` 配下を触る前に必ず読むこと。
 
 ## コマンド
 
@@ -27,8 +27,8 @@ iOS ネイティブ（SwiftUI）、自前 MVI、サーバーなし。QR コー�
 MeilogApp/                  アプリターゲット（Swift 6 言語モード）
 ├── Views/                  SwiftUI の View
 ├── Stores/                 @MainActor @Observable の Store。Effect の実行
-├── Infrastructure/         SwiftData / AVFoundation / MultipeerConnectivity の実装
-├── Transfer/               QR 画像生成、画像のリサイズ
+├── Infrastructure/         SwiftData の実装
+├── Transfer/               AirDrop 送受信、カスタム UTType
 ├── DesignSystem/           デザイントークン（Space, Typography, Colors, Palette, Radius, Shadow）
 └── Assets.xcassets/        カラーセット、AppIcon
 Packages/MeilogCore/        Swift Package（Swift 6 言語モード）
@@ -36,16 +36,16 @@ Packages/MeilogCore/        Swift Package（Swift 6 言語モード）
     ├── Model/              Card, CardStyle, MeetupEvent, Meeting, Encounter ...
     ├── Feature/            State / Intent / Effect / reduce
     ├── Port/               Repository などの protocol
-    └── Payload/            CardPayload（encode / decode）と短いキーの DTO
+    └── Payload/            CardPayload（encode / decode）
 docs/                       design.md, card-payload.md, design-system.md
 ```
 
 ## MeishiCore の絶対ルール
 
-- `import Foundation` 以外を書かない（SwiftUI, UIKit, SwiftData, Combine, MultipeerConnectivity 等は禁止）
+- `import Foundation` 以外を書かない（SwiftUI, UIKit, SwiftData, Combine 等は禁止）
 - `Package.swift` の `dependencies` は空のまま。外部ライブラリを足さない
 - `Color` や `Image` を持たない。色や模様は `paletteID` のような数値で持ち、描画への変換はアプリ側
-- 永続化・画像転送は `Port/` の protocol として定義し、実装はアプリ側 `Infrastructure/`
+- 永続化は `Port/` の protocol として定義し、実装はアプリ側 `Infrastructure/`
 - `public` は必要最小限。内部実装は `internal`
 
 ## MVI の規約
@@ -55,7 +55,6 @@ docs/                       design.md, card-payload.md, design-system.md
   - 現在時刻と新しい ID は Intent の引数で渡す（例: `.cardReceived(envelope, now: Date, newID: UUID)`）
 - 副作用は Effect の enum（データ）として返すだけ。実行はアプリ側の Store
 - Store は `XxxStore`、入口は `send(_ intent:)` ひとつ。`state` は `private(set)`
-- 画像受信のタイムアウトやキャンセルは Store で `Task` を保持して管理する
 - フォーム中心の画面（自分のカード編集、デザイン調整、設定）は素直な `@Observable` + Binding でよい。ただしビジネスロジックは Core の関数を呼ぶ
 
 ## テスト
@@ -82,14 +81,13 @@ docs/                       design.md, card-payload.md, design-system.md
 
 - design.md の「作る順番」に沿って、1ステップずつ進める。各ステップの終わりで止まって、何をしたかと次にやることを報告する
 - ステップ 1〜3 は UI なしで完結させる。テストが通るまで次に進まない
-- MultipeerConnectivity（ステップ 7）は最後。先回りして手を付けない
 - 設計を変えたくなったら、実装する前に提案して確認を取る。合意したら design.md も更新する
 
 ## やらないこと
 
 - 外部ライブラリの追加（TCA、KMP を含む）
 - サーバー、ドメイン、Universal Link、Web ページ
-- 連絡先・位置情報の権限
+- 特別な権限の要求（カメラ、連絡先、位置情報、ローカルネットワークなど）
 - `Meishi.xcodeproj` の直接編集
 - Concurrency の警告を `@preconcurrency` や `nonisolated(unsafe)` で黙らせること（直せないときは相談する）
 

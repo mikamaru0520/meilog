@@ -14,32 +14,19 @@
 
 ## 交換方式
 
-### QR コード
+### AirDrop
 
-```
-meishi://v1/card?d=<base64url(JSON)>
-```
-
-- 詳細は `docs/card-payload.md`
-- アプリ内スキャナ（AVFoundation）で読み取る。`.onOpenURL` でも同じ decode を通す
-- QR 生成は Core Image の `CIQRCodeGenerator`
-- QR 中央に自分のアイコンを載せる。載せる場合は誤り訂正を上げる必要があり、同じデータ量でも QR が細かくなる。実機で読み取りテストして、読みにくければアイコンを小さくするか外す
-- `CardPayload.decode` は、将来 `https://` 形式を足せるように scheme で分岐する構造にしておく（v1 では `meishi` のみ受け付ける）
-
-### アイコン画像（MultipeerConnectivity）
-
-- サービスタイプ: `meishi`
-- 表示側: カード表示中に `MCNearbyServiceAdvertiser` を起動。`discoveryInfo` に rendezvous（8文字のランダム値、カード表示のたびに再生成）を入れる
-- 読取側: QR を読んだ時点で交換は成立（Encounter を保存）。その後 `MCNearbyServiceBrowser` で rendezvous が一致する相手だけに接続し、画像を受け取る
-- 5秒でタイムアウト。失敗しても交換は壊れない。`avatarState` を取得失敗にして、あとで再取得できるようにする
-- 最初は片方向（表示側 → 読取側）のみ
-- 送信前に 512×512 程度にリサイズし、JPEG 品質 0.7 前後で圧縮（目安 50KB 以下）
-- Info.plist: `NSLocalNetworkUsageDescription`、`NSBonjourServices`（`_meishi._tcp`, `_meishi._udp`）。設定済み
-- 初回の権限ダイアログはオンボーディングで説明してから出す
+- カード情報を `.meilog` 拡張子の JSON ファイルとして AirDrop で送受信する
+- ファイルフォーマット: JSON（CardEnvelope を Codable でエンコード）
+- カスタム UTType: `com.example.meilog.card`（`public.json` に準拠）
+- アイコン画像も CardEnvelope に含めて送信する（別の転送手段は不要）
+- 受信側は `.onOpenURL` でファイルを受け取り、`CardPayload.decode` で JSON をパースする
+- 送信前に `UIActivityViewController` で AirDrop 共有シートを表示する
+- 送信側は CardSendView で確認画面を表示し、受信側は CardReceiveView でイベント選択画面を表示する
 
 ## モデル（MeishiCore/Model）
 
-ドメインモデルは永続化用に通常のキーで Codable にする。QR 用の短いキーは `Payload/` の DTO で変換する（ドメインモデルに短いキーの CodingKeys を持たせない）。
+ドメインモデルは永続化用に通常のキーで Codable にする。
 
 ```swift
 import Foundation
@@ -50,11 +37,11 @@ public struct Card: Codable, Equatable, Sendable {
     public var title: String?
     public var links: [Link]
     public var style: CardStyle
-    public var avatar: Data?             // QR には載せない。Multipeer で届く
+    public var avatar: Data?             // アイコン画像
 }
 
 public struct Link: Codable, Equatable, Sendable {
-    public enum Kind: String, Codable, Sendable { case github, x, bluesky, mastodon, web }
+    public enum Kind: String, Codable, Sendable { case github, x, web }
     public var kind: Kind
     public var value: String
 }
@@ -98,11 +85,10 @@ public struct Encounter: Codable, Equatable, Sendable {
     public var avatarState: AvatarState
 }
 
-/// QR の中身
-public struct CardEnvelope: Equatable, Sendable {
-    public var card: Card                // avatar は除いてエンコードされる
+/// AirDrop で交換する情報のラッパー
+public struct CardEnvelope: Codable, Equatable, Sendable {
+    public var card: Card                // avatar を含む
     public var event: MeetupEvent?
-    public var rendezvous: String?
 }
 ```
 
@@ -115,7 +101,7 @@ public struct CardEnvelope: Equatable, Sendable {
 
 カード受信時に `Meeting.event` を決める。
 
-1. QR にイベントが入っている → `.assigned(event, confidence: .confirmed)`
+1. AirDrop ファイルにイベントが入っている → `.assigned(event, confidence: .confirmed)`
 2. 自分の「直近のイベント」の `date` が受信日と同じ日 → `.assigned(event, confidence: .inferred)`
 3. どちらもない → `.unassigned`
 
@@ -156,7 +142,6 @@ public enum EncounterListEffect: Equatable, Sendable {
     case load
     case persist(Encounter)
     case delete(encounterID: UUID)
-    case requestAvatar(encounterID: UUID, rendezvous: String)
 }
 ```
 
@@ -169,16 +154,6 @@ public protocol EncounterRepository: Sendable {
     func load() async throws -> [Encounter]
     func save(_ encounter: Encounter) async throws
     func delete(id: UUID) async throws
-}
-
-public protocol AvatarReceiver: Sendable {
-    /// rendezvous が一致する相手から画像を受け取る。失敗・タイムアウト時は nil
-    func receive(rendezvous: String, timeout: Duration) async -> Data?
-}
-
-public protocol AvatarAdvertiser: Sendable {
-    func start(rendezvous: String, avatar: Data) async
-    func stop() async
 }
 ```
 
@@ -193,7 +168,6 @@ public protocol AvatarAdvertiser: Sendable {
 final class EncounterListStore {
     private(set) var state = EncounterListState()
     private let repository: EncounterRepository
-    private let avatarReceiver: AvatarReceiver
 
     func send(_ intent: EncounterListIntent) {
         let (next, effects) = reduce(state, intent)
@@ -213,14 +187,13 @@ final class EncounterListStore {
 - `paletteID` → 実際の色、`patternID` → 描画コードの対応はアプリ側。未知の ID は 0 番にフォールバック
 - アイコンがない相手は、イニシャルとパレットで生成した図形を表示
 - 一覧から詳細への遷移に `matchedGeometryEffect`、スクロールに `scrollTransition`
-- Liquid Glass はカード面ではなく、ボタンや QR 周りの操作系に限定（iOS 26 のみ）
+- Liquid Glass はカード面ではなく、ボタンやシート周りの操作系に限定（iOS 26 のみ）
 - UI の文言は日本語
 
 ## 権限
 
-- カメラ（QR 読み取り）
-- ローカルネットワーク（画像転送）
-- 連絡先・位置情報は使わない
+- 特別な権限は不要（AirDrop は OS 標準機能）
+- 連絡先・位置情報・カメラ・ローカルネットワークは使わない
 
 ## App Store に向けて
 
@@ -232,18 +205,18 @@ final class EncounterListStore {
 1. `MeishiCore/Model` のモデル定義
 2. `CardPayload` の encode / decode。往復テストとゴールデンベクタのテスト（イベントあり・なし）
 3. `reduce`: 3段フォールバック、再会検出、あとで整理、検索・絞り込み。テストで固める
-4. 自分のカードの作成・表示と QR 生成
-5. QR 読み取りと受信フロー（Store、SwiftData の Repository）
-6. 一覧・イベント別絞り込み・整理画面・遷移アニメーション
-7. MultipeerConnectivity で画像転送
+4. 自分のカードの作成・表示
+5. AirDrop 送信フロー（CardSendView、UIActivityViewController）
+6. AirDrop 受信フロー（CardReceiveView、.onOpenURL、Store、SwiftData の Repository）
+7. 一覧・イベント別絞り込み・整理画面・遷移アニメーション
 8. TestFlight でもくもく会に配布
 
-1〜3 は UI なし。7 は一番不確実なので最後。6 まででアプリとして成立する。
+1〜3 は UI なし。7 まででアプリとして成立する。
 
 ## 保留にしたもの
 
 - Android 対応: 要望が出たら、まず静的な Web ページで参加できるようにする。アプリを作るなら別ネイティブで、この設計書と `reduce` のテストをもとに移植
 - ドメインと Universal Link: Web 対応を決めた時点で取る
-- NFC タグ、AirDrop、Wallet パス、iCloud 同期: Core に手を入れずに後から足せる
+- NFC タグ、Wallet パス、iCloud 同期: Core に手を入れずに後から足せる
 - TCA: 自前 MVI で副作用やテストが辛くなったら検討
-- 相互交換（読取側の画像も送り返す）
+- 相互交換（送信側の画像も送り返す）

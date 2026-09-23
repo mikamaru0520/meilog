@@ -8,7 +8,7 @@ struct MyCardView: View {
     @Bindable var store: MyCardStore
     @Bindable var encounterListStore: EncounterListStore
     @State private var showingEdit = false
-    @State private var showingQR = false
+    @State private var showingSend = false
 
     var body: some View {
         NavigationStack {
@@ -19,9 +19,6 @@ struct MyCardView: View {
                         VStack(spacing: Space.xl) {
                             // カードプレビュー（大きく表示）
                             LargeCardView(card: card)
-                                .onTapGesture {
-                                    showingQR = true
-                                }
                                 .padding(.top, Space.xl)
                         }
                         .padding(.horizontal, Space.md)
@@ -42,11 +39,11 @@ struct MyCardView: View {
                             .padding(.horizontal, Space.md)
                         }
 
-                        // QRコード表示ボタン
+                        // カード送信ボタン
                         Button {
-                            showingQR = true
+                            showingSend = true
                         } label: {
-                            Label("QRコードを表示", systemImage: "qrcode")
+                            Label("カードを送る", systemImage: "square.and.arrow.up")
                                 .font(Typography.button)
                                 .frame(maxWidth: .infinity)
                                 .padding()
@@ -70,11 +67,8 @@ struct MyCardView: View {
                 .sheet(isPresented: $showingEdit) {
                     CardEditView(store: store)
                 }
-                .fullScreenCover(isPresented: $showingQR) {
-                    QRCodeModalView(
-                        store: store,
-                        encounterListStore: encounterListStore
-                    )
+                .sheet(isPresented: $showingSend) {
+                    CardSendView(store: store)
                 }
             } else {
                 // 初回起動時

@@ -71,17 +71,6 @@ final class EncounterListStore {
                 }
             }
             runningTasks.append(task)
-
-        case .requestAvatar(let encounterID, let rendezvous):
-            // TODO: Step 7 で MultipeerConnectivity を実装
-            logger.debug("TODO: Request avatar for \(encounterID) with rendezvous \(rendezvous)")
-            // 現時点では unavailable として扱う
-            let task = Task {
-                try? await Task.sleep(for: .seconds(1))
-                guard !Task.isCancelled else { return }
-                send(.avatarFailed(encounterID: encounterID))
-            }
-            runningTasks.append(task)
         }
     }
 }

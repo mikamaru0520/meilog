@@ -161,9 +161,6 @@ public enum EncounterListEffect: Equatable, Sendable {
 
     /// Encounter を削除する
     case delete(encounterID: UUID)
-
-    /// アイコン画像をリクエストする
-    case requestAvatar(encounterID: UUID, rendezvous: String)
 }
 
 // MARK: - Reduce

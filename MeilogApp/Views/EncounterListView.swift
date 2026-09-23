@@ -5,8 +5,6 @@ import MeilogCore
 /// 受け取ったカード一覧画面
 struct EncounterListView: View {
     @Bindable var store: EncounterListStore
-    @State private var scanner = QRScanner()
-    @State private var showingScanner = false
     @State private var searchText = ""
 
     var body: some View {
@@ -18,12 +16,7 @@ struct EncounterListView: View {
                         ContentUnavailableView {
                             Label("受け取ったカードはありません", systemImage: "person.2")
                         } description: {
-                            Text("QRコードを読み取ってカードを受け取りましょう")
-                        } actions: {
-                            Button("QRコードを読み取る") {
-                                showingScanner = true
-                            }
-                            .buttonStyle(.borderedProminent)
+                            Text("AirDropでカードを受け取りましょう")
                         }
                     } else {
                         // 検索結果なし
@@ -109,19 +102,6 @@ struct EncounterListView: View {
                             )
                         }
                     }
-                }
-
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showingScanner = true
-                    } label: {
-                        Label("QRコードを読み取る", systemImage: "qrcode.viewfinder")
-                    }
-                }
-            }
-            .sheet(isPresented: $showingScanner) {
-                NavigationStack {
-                    QRScannerView(scanner: scanner, store: store)
                 }
             }
             .task {

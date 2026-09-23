@@ -6,6 +6,8 @@ struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var myCardStore = MyCardStore()
     @State private var encounterListStore: EncounterListStore?
+    @State private var receivedEnvelope: CardEnvelope?
+    @State private var showingReceive = false
 
     var body: some View {
         TabView {
@@ -50,6 +52,34 @@ struct RootView: View {
                     myCardStore: myCardStore
                 )
             }
+        }
+        .onOpenURL { url in
+            handleReceivedFile(url)
+        }
+        .sheet(isPresented: $showingReceive) {
+            if let envelope = receivedEnvelope,
+               let store = encounterListStore {
+                CardReceiveView(envelope: envelope, encounterListStore: store)
+            }
+        }
+    }
+
+    private func handleReceivedFile(_ url: URL) {
+        // .meilog ファイルを読み込む
+        guard url.pathExtension == "meilog" else { return }
+
+        do {
+            // ファイルを読み込む
+            let data = try Data(contentsOf: url)
+
+            // CardEnvelope にデコード
+            let envelope = try CardPayload.decode(data)
+
+            // 確認画面を表示
+            receivedEnvelope = envelope
+            showingReceive = true
+        } catch {
+            print("Failed to receive card: \(error)")
         }
     }
 }

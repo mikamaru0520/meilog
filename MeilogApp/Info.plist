@@ -37,9 +37,9 @@
 		<string>_meilog._udp</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>QRコードを読み取って名刺を受け取るために使用します</string>
+	<string>QRコードを読み取って名刺を受け取るために使用します（現在は使用していません）</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>近くの相手とアイコン画像を交換するために使用します</string>
+	<string>近くの相手とアイコン画像を交換するために使用します（現在は使用していません）</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -56,5 +56,25 @@
 	</array>
 	<key>UIUserInterfaceStyle</key>
 	<string>Light</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.json</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Meilog Card</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.example.meilog.card</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>meilog</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 </dict>
 </plist>
