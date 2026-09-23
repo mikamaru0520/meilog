@@ -25,11 +25,11 @@ struct QRScannerView: View {
                 Spacer()
 
                 Text("QRコードをカメラに映してください")
-                    .font(.headline)
-                    .padding()
+                    .font(Typography.sectionHeader)
+                    .padding(Space.md)
                     .background(.ultraThinMaterial)
-                    .cornerRadius(12)
-                    .padding()
+                    .cornerRadius(Radius.control)
+                    .padding(Space.md)
             }
         }
         .navigationTitle("QR 読み取り")

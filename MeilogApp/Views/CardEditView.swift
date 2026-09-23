@@ -55,7 +55,7 @@ struct CardEditView: View {
                 }
                 Spacer()
                 Text("カードを編集")
-                    .font(.headline)
+                    .font(Typography.sectionHeader)
                 Spacer()
                 Button("保存") {
                     saveCard()
@@ -63,13 +63,13 @@ struct CardEditView: View {
                 }
                 .disabled(!isValid)
             }
-            .padding()
+            .padding(Space.md)
 
             Divider()
 
             // コンテンツ
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: Space.lg) {
                     // カードプレビュー
                     CardPreviewSection(
                         name: name,
@@ -97,15 +97,15 @@ struct CardEditView: View {
                     )
 
                     // 説明
-                    HStack(alignment: .top, spacing: 8) {
+                    HStack(alignment: .top, spacing: Space.xs) {
                         Image(systemName: "lock.fill")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(Typography.caption)
+                            .foregroundStyle(Colors.textSecondary)
                         Text("カードはこの編集中に保存されます。QRコードに入るのは名前・肩書き・リンク・デザインだけです。")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(Typography.caption)
+                            .foregroundStyle(Colors.textSecondary)
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal, Space.md)
 
                     // 保存ボタン
                     Button {
@@ -113,16 +113,16 @@ struct CardEditView: View {
                         dismiss()
                     } label: {
                         Text("カードを保存")
-                            .font(.headline)
+                            .font(Typography.button)
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(isValid ? Color.green : Color.gray)
-                            .cornerRadius(12)
+                            .padding(Space.md)
+                            .background(isValid ? Colors.success : Colors.textSecondary)
+                            .cornerRadius(Radius.control)
                     }
                     .disabled(!isValid)
-                    .padding(.horizontal)
-                    .padding(.bottom)
+                    .padding(.horizontal, Space.md)
+                    .padding(.bottom, Space.md)
                 }
             }
         }
@@ -151,33 +151,13 @@ private struct CardPreviewSection: View {
     let patternID: Int
     let avatarData: Data?
 
-    // 配色の定義
-    private let palettes: [[Color]] = [
-        [.mint, .orange], // 朝霧
-        [.pink, .orange], // 夕焼け
-        [.blue, .indigo], // 深海
-        [.green, .yellow], // 新緑
-        [.purple, .pink], // 藤色
-        [.black, .gray], // 墨
-    ]
-
-    private var selectedPalette: [Color] {
-        guard paletteID >= 0 && paletteID < palettes.count else {
-            return palettes[0]
-        }
-        return palettes[paletteID]
-    }
-
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: Space.sm) {
             // カードプレビュー
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: Radius.card)
                 .fill(
                     LinearGradient(
-                        colors: [
-                            selectedPalette[0].opacity(0.5),
-                            selectedPalette[1].opacity(0.3)
-                        ],
+                        colors: Palette.colors(for: paletteID).map { $0.opacity(0.4) },
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -190,10 +170,10 @@ private struct CardPreviewSection: View {
                     }
                 }
                 .overlay {
-                    VStack(spacing: 8) {
+                    VStack(spacing: Space.xs) {
                         // アバター
                         Circle()
-                            .fill(Color.primary)
+                            .fill(Colors.textPrimary)
                             .frame(width: 60, height: 60)
                             .overlay {
                                 if let avatarData = avatarData,
@@ -204,7 +184,7 @@ private struct CardPreviewSection: View {
                                         .clipShape(Circle())
                                 } else {
                                     Text(name.prefix(1))
-                                        .font(.title)
+                                        .font(Typography.cardName)
                                         .foregroundStyle(.white)
                                 }
                             }
@@ -212,28 +192,28 @@ private struct CardPreviewSection: View {
                         // 名前と肩書き
                         if !name.isEmpty {
                             Text(name)
-                                .font(.title3.bold())
+                                .font(Typography.cardName)
                         }
                         if !title.isEmpty {
                             Text(title)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .font(Typography.cardTitle)
+                                .foregroundStyle(Colors.textSecondary)
                         }
 
                         // リンク表示
                         ForEach(links.prefix(4), id: \.value) { link in
                             Text(link.value)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .font(Typography.cardLink)
+                                .foregroundStyle(Colors.textSecondary)
                         }
                     }
-                    .padding()
+                    .padding(Space.md)
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, Space.md)
 
             Text("QRコードで相手に届く見た目です")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(Typography.caption)
+                .foregroundStyle(Colors.textSecondary)
         }
     }
 }
@@ -247,7 +227,7 @@ private struct PatternOverlay: View {
             Canvas { context, size in
                 switch patternID {
                 case 1: // ドット
-                    let spacing: CGFloat = 16
+                    let spacing: CGFloat = Space.md
                     for x in stride(from: 0, to: size.width, by: spacing) {
                         for y in stride(from: 0, to: size.height, by: spacing) {
                             let point = CGPoint(x: x, y: y)
@@ -280,7 +260,7 @@ private struct PatternOverlay: View {
                         )
                     }
                 case 3: // 斜線
-                    let spacing: CGFloat = 16
+                    let spacing: CGFloat = Space.md
                     for offset in stride(from: -size.height, to: size.width + size.height, by: spacing) {
                         context.stroke(
                             Path { path in
@@ -322,14 +302,14 @@ private struct ProfileSection: View {
     @Binding var avatarData: Data?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: Space.md) {
             Text("プロフィール")
-                .font(.headline)
+                .font(Typography.sectionHeader)
 
             // アバター
-            HStack {
+            HStack(spacing: Space.sm) {
                 Circle()
-                    .fill(Color.primary)
+                    .fill(Colors.textPrimary)
                     .frame(width: 60, height: 60)
                     .overlay {
                         if let avatarData = avatarData,
@@ -340,7 +320,7 @@ private struct ProfileSection: View {
                                 .clipShape(Circle())
                         } else {
                             Text(name.prefix(1))
-                                .font(.title)
+                                .font(Typography.cardName)
                                 .foregroundStyle(.white)
                         }
                     }
@@ -361,21 +341,21 @@ private struct ProfileSection: View {
             }
 
             Text("写真は近くの相手に直接送られます。\nQRコードには含まれません。")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(Typography.caption)
+                .foregroundStyle(Colors.textSecondary)
 
             // 名前
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Space.xxs) {
                 HStack {
                     Text("名前")
-                        .font(.subheadline)
+                        .font(Typography.fieldLabel)
                     Text("必須")
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.destructive)
                     Spacer()
                     Text("\(name.count)/40")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.textSecondary)
                 }
                 TextField("佐藤 ゆい", text: $name)
                     .textFieldStyle(.roundedBorder)
@@ -383,24 +363,24 @@ private struct ProfileSection: View {
             }
 
             // 肩書き
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Space.xxs) {
                 HStack {
                     Text("肩書き")
-                        .font(.subheadline)
+                        .font(Typography.fieldLabel)
                     Text("任意")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.textSecondary)
                     Spacer()
                     Text("\(title.count)/60")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.textSecondary)
                 }
                 TextField("iOSエンジニア", text: $title)
                     .textFieldStyle(.roundedBorder)
                     .textContentType(.jobTitle)
             }
         }
-        .padding(.horizontal)
+        .padding(.horizontal, Space.md)
     }
 }
 
@@ -409,18 +389,18 @@ private struct LinksSection: View {
     @Binding var links: [LinkItem]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: Space.md) {
             HStack {
                 Text("リンク")
-                    .font(.headline)
+                    .font(Typography.sectionHeader)
                 Spacer()
                 Text("\(links.count)/4")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.textSecondary)
             }
 
             ForEach($links) { $link in
-                HStack(spacing: 12) {
+                HStack(spacing: Space.sm) {
                     Picker("", selection: $link.kind) {
                         Text("GitHub").tag(Link.Kind.github)
                         Text("X").tag(Link.Kind.x)
@@ -438,8 +418,9 @@ private struct LinksSection: View {
                         links.removeAll { $0.id == link.id }
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Colors.textSecondary)
                     }
+                    .accessibilityLabel("リンクを削除")
                 }
             }
 
@@ -452,7 +433,7 @@ private struct LinksSection: View {
                 .buttonStyle(.bordered)
             }
         }
-        .padding(.horizontal)
+        .padding(.horizontal, Space.md)
     }
 }
 
@@ -461,47 +442,37 @@ private struct DesignSection: View {
     @Binding var paletteID: Int
     @Binding var patternID: Int
 
-    // 配色の定義（仮）
-    private let palettes: [[Color]] = [
-        [.mint, .orange], // 朝霧
-        [.pink, .orange], // 夕焼け
-        [.blue, .indigo], // 深海
-        [.green, .yellow], // 新緑
-        [.purple, .pink], // 藤色
-        [.black, .gray], // 墨
-    ]
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: Space.md) {
             Text("デザイン")
-                .font(.headline)
+                .font(Typography.sectionHeader)
 
             // 文字の配置（今回は省略、後で実装）
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: Space.xs) {
                 Text("文字の配置")
-                    .font(.subheadline)
+                    .font(Typography.fieldLabel)
                 // TODO: 左揃え、中央、縦書きの選択UI
             }
 
             // 配色
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: Space.xs) {
                 HStack {
                     Text("配色")
-                        .font(.subheadline)
-                    Text("朝霧")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.fieldLabel)
+                    Text(Palette.name(for: paletteID))
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.textSecondary)
                 }
 
-                HStack(spacing: 12) {
-                    ForEach(0..<6, id: \.self) { index in
+                HStack(spacing: Space.sm) {
+                    ForEach(0..<Palette.all.count, id: \.self) { index in
                         Button {
                             paletteID = index
                         } label: {
                             Circle()
                                 .fill(
                                     LinearGradient(
-                                        colors: palettes[index],
+                                        colors: Palette.colors(for: index),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
@@ -510,43 +481,45 @@ private struct DesignSection: View {
                                 .overlay {
                                     if paletteID == index {
                                         Circle()
-                                            .stroke(Color.primary, lineWidth: 3)
+                                            .stroke(Colors.textPrimary, lineWidth: 3)
                                     }
                                 }
                         }
+                        .accessibilityLabel(Palette.name(for: index))
                     }
                 }
             }
 
             // 模様
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: Space.xs) {
                 Text("模様")
-                    .font(.subheadline)
+                    .font(Typography.fieldLabel)
 
-                HStack(spacing: 12) {
+                HStack(spacing: Space.sm) {
                     ForEach(0..<5, id: \.self) { index in
                         Button {
                             patternID = index
                         } label: {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.secondary.opacity(0.1))
+                            RoundedRectangle(cornerRadius: Radius.control / 2)
+                                .fill(Colors.textSecondary.opacity(0.1))
                                 .frame(width: 50, height: 50)
                                 .overlay {
                                     Text(patternName(index))
-                                        .font(.caption2)
+                                        .font(Typography.caption)
                                 }
                                 .overlay {
                                     if patternID == index {
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(Color.primary, lineWidth: 2)
+                                        RoundedRectangle(cornerRadius: Radius.control / 2)
+                                            .stroke(Colors.textPrimary, lineWidth: 2)
                                     }
                                 }
                         }
+                        .accessibilityLabel("模様: \(patternName(index))")
                     }
                 }
             }
         }
-        .padding(.horizontal)
+        .padding(.horizontal, Space.md)
     }
 
     private func patternName(_ id: Int) -> String {

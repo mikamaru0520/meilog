@@ -30,29 +30,29 @@ struct EncounterDetailView: View {
             List {
             // カード情報
             Section {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: Space.sm) {
                     Text(encounter.card.name)
-                        .font(.title2.bold())
+                        .font(Typography.cardName)
 
                     if let title = encounter.card.title {
                         Text(title)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .font(Typography.cardTitle)
+                            .foregroundStyle(Colors.textSecondary)
                     }
 
                     // リンク
                     if !encounter.card.links.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: Space.xs) {
                             ForEach(encounter.card.links, id: \.self) { link in
                                 HStack {
                                     linkIcon(for: link.kind)
                                     Text(link.value)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        .font(Typography.caption)
+                                        .foregroundStyle(Colors.textSecondary)
                                 }
                             }
                         }
-                        .padding(.top, 4)
+                        .padding(.top, Space.xxs)
                     }
 
                     #if DEBUG
@@ -62,10 +62,10 @@ struct EncounterDetailView: View {
                         Label("パターン: \(encounter.card.style.patternID)", systemImage: "square.grid.2x2")
                     }
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Colors.textTertiary)
                     #endif
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, Space.xs)
             } header: {
                 Text("カード情報")
             }
@@ -146,7 +146,7 @@ private struct MeetingRow: View {
     let meeting: Meeting
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: Space.xxs) {
             Text(meeting.at, style: .date)
                 .font(.subheadline.weight(.medium))
 
@@ -155,7 +155,7 @@ private struct MeetingRow: View {
                 Spacer()
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, Space.xxs)
     }
 
     @ViewBuilder
@@ -163,25 +163,25 @@ private struct MeetingRow: View {
         switch meeting.event {
         case .unassigned:
             Label("未割り当て", systemImage: "questionmark.circle")
-                .font(.caption)
-                .foregroundStyle(.orange)
+                .font(Typography.caption)
+                .foregroundStyle(Colors.warning)
 
         case .assigned(let event, let confidence):
-            HStack(spacing: 4) {
+            HStack(spacing: Space.xxs) {
                 if confidence == .inferred {
                     Image(systemName: "sparkles")
                         .font(.caption2)
-                        .foregroundStyle(.yellow)
+                        .foregroundStyle(Colors.warning)
                 }
                 Text(event.name)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.textSecondary)
             }
 
         case .none:
             Label("イベント外", systemImage: "minus.circle")
-                .font(.caption)
-                .foregroundStyle(.gray)
+                .font(Typography.caption)
+                .foregroundStyle(Colors.textSecondary)
         }
     }
 }

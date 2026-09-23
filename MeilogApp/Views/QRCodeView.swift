@@ -22,23 +22,24 @@ struct QRCodeModalView: View {
                 // ナビゲーションバー
                 HStack {
                     Text("QRコード")
-                        .font(.headline)
+                        .font(Typography.sectionHeader)
                     Spacer()
                     Button {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Colors.textSecondary)
                     }
+                    .accessibilityLabel("閉じる")
                 }
-                .padding()
+                .padding(Space.md)
 
                 ScrollView {
-                    VStack(spacing: 24) {
+                    VStack(spacing: Space.lg) {
                         // QRコード表示エリア
                         if let qrImage = qrImage, let card = store.myCard {
-                            VStack(spacing: 24) {
+                            VStack(spacing: Space.lg) {
                                 // QRコード + アバターオーバーレイ
                                 ZStack {
                                     Image(uiImage: qrImage)
@@ -49,7 +50,7 @@ struct QRCodeModalView: View {
 
                                     // 中央にアバター
                                     Circle()
-                                        .fill(Color.primary)
+                                        .fill(Colors.textPrimary)
                                         .frame(width: 60, height: 60)
                                         .overlay {
                                             if let avatarData = card.avatar,
@@ -69,33 +70,33 @@ struct QRCodeModalView: View {
                                                 .stroke(Color.white, lineWidth: 4)
                                         }
                                 }
-                                .padding(40)
+                                .padding(Space.xxl)
                                 .background(.white)
-                                .cornerRadius(24)
-                                .shadow(color: .black.opacity(0.1), radius: 12, y: 4)
+                                .cornerRadius(Radius.sheet)
+                                .cardShadow()
 
                                 // 名前と肩書き
-                                VStack(spacing: 4) {
+                                VStack(spacing: Space.xxs) {
                                     Text(card.name)
-                                        .font(.title2.bold())
+                                        .font(Typography.cardName)
                                     if let title = card.title {
                                         Text(title)
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
+                                            .font(Typography.cardTitle)
+                                            .foregroundStyle(Colors.textSecondary)
                                     }
                                 }
                             }
-                            .padding(.top, 24)
+                            .padding(.top, Space.lg)
                         } else if isGenerating {
                             ProgressView("QR コード生成中...")
                                 .frame(height: 400)
                                 .frame(maxWidth: .infinity)
                         } else {
                             // 生成エラー時
-                            VStack(spacing: 16) {
+                            VStack(spacing: Space.md) {
                                 Image(systemName: "exclamationmark.triangle")
                                     .font(.largeTitle)
-                                    .foregroundStyle(.orange)
+                                    .foregroundStyle(Colors.warning)
                                 Text("QR コードの生成に失敗しました")
                                 Button("再試行") {
                                     Task {
@@ -109,14 +110,14 @@ struct QRCodeModalView: View {
 
                         // イベント情報セクション
                         if let event = store.recentEvent {
-                            VStack(alignment: .leading, spacing: 8) {
+                            VStack(alignment: .leading, spacing: Space.xs) {
                                 HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
+                                    VStack(alignment: .leading, spacing: Space.xxs) {
                                         Text("このQRに入るイベント")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
+                                            .font(Typography.caption)
+                                            .foregroundStyle(Colors.textSecondary)
                                         Text(event.name)
-                                            .font(.headline)
+                                            .font(Typography.sectionHeader)
                                     }
                                     Spacer()
                                     Button("変更") {
@@ -126,23 +127,23 @@ struct QRCodeModalView: View {
                                     .controlSize(.small)
                                 }
                             }
-                            .padding()
+                            .padding(Space.md)
                             .background(.regularMaterial)
-                            .cornerRadius(12)
-                            .padding(.horizontal)
+                            .cornerRadius(Radius.control)
+                            .padding(.horizontal, Space.md)
                         }
 
                         // 説明文
-                        VStack(spacing: 8) {
+                        VStack(spacing: Space.xs) {
                             Text("相手の Meilog で読み取ってもらってください。")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .font(Typography.body)
+                                .foregroundStyle(Colors.textSecondary)
                             Text("表示中は画面を明るくしています。")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .font(Typography.body)
+                                .foregroundStyle(Colors.textSecondary)
                         }
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal)
+                        .padding(.horizontal, Space.md)
                         .padding(.bottom, 100)
                     }
                 }
@@ -154,18 +155,18 @@ struct QRCodeModalView: View {
                         // TODO: QR読み取り画面へ
                     } label: {
                         Label("相手のQRを読み取る", systemImage: "qrcode.viewfinder")
-                            .font(.headline)
+                            .font(Typography.button)
                             .frame(maxWidth: .infinity)
                             .padding()
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
-                    .padding()
+                    .padding(Space.md)
                     .background(.regularMaterial)
 
                     Text("表示中だけ、近くの相手にアイコン画像を送れます")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.textSecondary)
                         .padding(.bottom)
                 }
             }

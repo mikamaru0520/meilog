@@ -28,14 +28,16 @@ MeilogApp/                  アプリターゲット（Swift 6 言語モード�
 ├── Views/                  SwiftUI の View
 ├── Stores/                 @MainActor @Observable の Store。Effect の実行
 ├── Infrastructure/         SwiftData / AVFoundation / MultipeerConnectivity の実装
-└── Transfer/               QR 画像生成、画像のリサイズ
+├── Transfer/               QR 画像生成、画像のリサイズ
+├── DesignSystem/           デザイントークン（Space, Typography, Colors, Palette, Radius, Shadow）
+└── Assets.xcassets/        カラーセット、AppIcon
 Packages/MeilogCore/        Swift Package（Swift 6 言語モード）
 └── Sources/MeilogCore/
     ├── Model/              Card, CardStyle, MeetupEvent, Meeting, Encounter ...
     ├── Feature/            State / Intent / Effect / reduce
     ├── Port/               Repository などの protocol
     └── Payload/            CardPayload（encode / decode）と短いキーの DTO
-docs/                       design.md, card-payload.md
+docs/                       design.md, card-payload.md, design-system.md
 ```
 
 ## MeishiCore の絶対ルール
@@ -63,6 +65,18 @@ docs/                       design.md, card-payload.md
 - Intent を追加したら、最低1つテストを追加する
 - `CardPayload` は往復テストと、`docs/card-payload.md` のゴールデンベクタの decode テストを必ず持つ
 - Core を変更したら `make test-core` が通ることを確認してから完了とする
+
+## デザインシステムの規約
+
+詳細は `docs/design-system.md` を参照。
+
+- **View 内で数値リテラルを直接書かない**。スペーシングは `Space` enum、角丸は `Radius` enum を使う
+- **16進数や `Color(red:green:blue:)` を直接書かない**。`Colors` enum か Assets.xcassets のカラーセットを使う
+- **固定サイズのフォントを使わない**。`Typography` enum で定義された Dynamic Type 対応のフォントを使う
+- **カード配色は `Palette` に集約する**。未知の paletteID は 0 番にフォールバック
+- **画面の左右マージンは `Space.md`（16pt）に統一する**
+- **タップ領域は最小 44×44pt を確保する**。アイコンのみのボタンには `accessibilityLabel` を必ず付ける
+- **文字と背景のコントラストは 4.5:1 以上を満たす**こと
 
 ## 作業の進め方
 

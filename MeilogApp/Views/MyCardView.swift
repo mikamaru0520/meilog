@@ -14,30 +14,30 @@ struct MyCardView: View {
                 VStack(spacing: 0) {
                     // スクロール可能なコンテンツ
                     ScrollView {
-                        VStack(spacing: 32) {
+                        VStack(spacing: Space.xl) {
                             // カードプレビュー（大きく表示）
                             LargeCardView(card: card)
                                 .onTapGesture {
                                     showingQR = true
                                 }
-                                .padding(.top, 32)
+                                .padding(.top, Space.xl)
                         }
-                        .padding(.horizontal)
+                        .padding(.horizontal, Space.md)
                         .padding(.bottom, 120) // ボタンエリア分の余白
                     }
 
                     // 固定フッターエリア
-                    VStack(spacing: 12) {
+                    VStack(spacing: Space.sm) {
                         // イベント表示
                         if let event = store.recentEvent {
-                            HStack(spacing: 8) {
+                            HStack(spacing: Space.xs) {
                                 Image(systemName: "clock")
-                                    .font(.subheadline)
+                                    .font(Typography.body)
                                 Text("今日のイベント: \(event.name)")
-                                    .font(.subheadline)
+                                    .font(Typography.body)
                             }
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal)
+                            .foregroundStyle(Colors.textSecondary)
+                            .padding(.horizontal, Space.md)
                         }
 
                         // QRコード表示ボタン
@@ -45,13 +45,13 @@ struct MyCardView: View {
                             showingQR = true
                         } label: {
                             Label("QRコードを表示", systemImage: "qrcode")
-                                .font(.headline)
+                                .font(Typography.button)
                                 .frame(maxWidth: .infinity)
                                 .padding()
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
-                        .padding(.horizontal)
+                        .padding(.horizontal, Space.md)
                         .padding(.bottom)
                     }
                     .background(.regularMaterial)
@@ -95,31 +95,11 @@ struct MyCardView: View {
 private struct LargeCardView: View {
     let card: Card
 
-    // 配色の定義
-    private let palettes: [[Color]] = [
-        [.mint, .orange], // 朝霧
-        [.pink, .orange], // 夕焼け
-        [.blue, .indigo], // 深海
-        [.green, .yellow], // 新緑
-        [.purple, .pink], // 藤色
-        [.black, .gray], // 墨
-    ]
-
-    private var selectedPalette: [Color] {
-        guard card.style.paletteID >= 0 && card.style.paletteID < palettes.count else {
-            return palettes[0]
-        }
-        return palettes[card.style.paletteID]
-    }
-
     var body: some View {
-        RoundedRectangle(cornerRadius: 24)
+        RoundedRectangle(cornerRadius: Radius.sheet)
             .fill(
                 LinearGradient(
-                    colors: [
-                        selectedPalette[0].opacity(0.5),
-                        selectedPalette[1].opacity(0.3)
-                    ],
+                    colors: Palette.colors(for: card.style.paletteID).map { $0.opacity(0.4) },
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -129,16 +109,16 @@ private struct LargeCardView: View {
                 // 模様レイヤー
                 if card.style.patternID > 0 {
                     CardPatternOverlay(patternID: card.style.patternID)
-                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                        .clipShape(RoundedRectangle(cornerRadius: Radius.sheet))
                 }
             }
             .overlay {
-                VStack(spacing: 16) {
+                VStack(spacing: Space.md) {
                     Spacer()
 
                     // アバター
                     Circle()
-                        .fill(Color.primary)
+                        .fill(Colors.textPrimary)
                         .frame(width: 80, height: 80)
                         .overlay {
                             if let avatarData = card.avatar,
@@ -157,35 +137,35 @@ private struct LargeCardView: View {
                     Spacer()
 
                     // テキスト情報
-                    VStack(spacing: 8) {
-                        HStack(spacing: 12) {
+                    VStack(spacing: Space.xs) {
+                        HStack(spacing: Space.sm) {
                             if let title = card.title {
                                 Text(title)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                                    .font(Typography.cardTitle)
+                                    .foregroundStyle(Colors.textSecondary)
                                 Text("|")
-                                    .foregroundStyle(.tertiary)
+                                    .foregroundStyle(Colors.textTertiary)
                             }
                             Text(card.name)
-                                .font(.title2.bold())
+                                .font(Typography.cardName)
                         }
 
                         // リンク（最大3件）
                         if !card.links.isEmpty {
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: Space.xxs) {
                                 ForEach(card.links.prefix(3), id: \.value) { link in
                                     Text(link.value)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        .font(Typography.cardLink)
+                                        .foregroundStyle(Colors.textSecondary)
                                 }
                             }
                         }
                     }
-                    .padding(.bottom, 24)
+                    .padding(.bottom, Space.lg)
                 }
-                .padding()
+                .padding(Space.md)
             }
-            .shadow(color: .black.opacity(0.1), radius: 16, y: 8)
+            .cardShadow()
     }
 }
 
@@ -198,7 +178,7 @@ private struct CardPatternOverlay: View {
             Canvas { context, size in
                 switch patternID {
                 case 1: // ドット
-                    let spacing: CGFloat = 16
+                    let spacing: CGFloat = Space.md
                     for x in stride(from: 0, to: size.width, by: spacing) {
                         for y in stride(from: 0, to: size.height, by: spacing) {
                             let point = CGPoint(x: x, y: y)
@@ -231,7 +211,7 @@ private struct CardPatternOverlay: View {
                         )
                     }
                 case 3: // 斜線
-                    let spacing: CGFloat = 16
+                    let spacing: CGFloat = Space.md
                     for offset in stride(from: -size.height, to: size.width + size.height, by: spacing) {
                         context.stroke(
                             Path { path in

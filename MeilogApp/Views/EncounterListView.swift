@@ -136,44 +136,44 @@ private struct EncounterRow: View {
     let encounter: Encounter
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Space.xs) {
             // 名前
             Text(encounter.card.name)
-                .font(.headline)
+                .font(Typography.sectionHeader)
 
             // 肩書き
             if let title = encounter.card.title {
                 Text(title)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(Typography.cardTitle)
+                    .foregroundStyle(Colors.textSecondary)
             }
 
             // 最後に会った日時とイベント
             HStack {
                 if let lastMet = encounter.lastMetAt {
                     Text(lastMet, style: .date)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .font(Typography.caption)
+                        .foregroundStyle(Colors.textTertiary)
                 }
 
                 if let firstMeeting = encounter.meetings.first {
                     switch firstMeeting.event {
                     case .assigned(let event, let confidence):
-                        HStack(spacing: 4) {
+                        HStack(spacing: Space.xxs) {
                             Image(systemName: confidence == .confirmed ? "checkmark.circle.fill" : "sparkles")
-                                .font(.caption)
+                                .font(Typography.caption)
                             Text(event.name)
-                                .font(.caption)
+                                .font(Typography.caption)
                         }
-                        .foregroundStyle(confidence == .confirmed ? .green : .orange)
+                        .foregroundStyle(confidence == .confirmed ? Colors.success : Colors.warning)
                     case .unassigned:
                         Text("未割り当て")
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                            .font(Typography.caption)
+                            .foregroundStyle(Colors.destructive)
                     case .none:
                         Text("イベント外")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(Typography.caption)
+                            .foregroundStyle(Colors.textSecondary)
                     }
                 }
             }
@@ -181,11 +181,11 @@ private struct EncounterRow: View {
             // 会った回数
             if encounter.meetings.count > 1 {
                 Text("\(encounter.meetings.count)回会いました")
-                    .font(.caption)
-                    .foregroundStyle(.blue)
+                    .font(Typography.caption)
+                    .foregroundStyle(Colors.accent)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, Space.xxs)
     }
 }
 
