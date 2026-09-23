@@ -20,3 +20,6 @@ xcuserdata/
 # エディタ
 *.swp
 *~
+
+# Git
+.gitmessage
