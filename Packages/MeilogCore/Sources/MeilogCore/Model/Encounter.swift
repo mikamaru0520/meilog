@@ -1,7 +1,7 @@
 import Foundation
 
 /// アイコン画像の受信状態
-public enum AvatarState: Codable, Equatable, Sendable {
+public enum AvatarState: Codable, Equatable, Hashable, Sendable {
     /// まだ受信していない
     case notReceived
     /// 受信済み
@@ -11,7 +11,7 @@ public enum AvatarState: Codable, Equatable, Sendable {
 }
 
 /// 相手1人分の記録。再会したら meetings が増える
-public struct Encounter: Codable, Equatable, Identifiable, Sendable {
+public struct Encounter: Codable, Equatable, Hashable, Identifiable, Sendable {
     public let id: UUID
     /// 最新のカード情報（再会時に更新される）
     public var card: Card

@@ -19,7 +19,7 @@ public struct MeetupEvent: Codable, Equatable, Hashable, Identifiable, Sendable 
 }
 
 /// イベント割り当ての確信度
-public enum Confidence: Codable, Equatable, Sendable {
+public enum Confidence: Codable, Equatable, Hashable, Sendable {
     /// 推測（自動割り当て）
     case inferred
     /// 確定（ユーザーが明示的に設定）
@@ -27,7 +27,7 @@ public enum Confidence: Codable, Equatable, Sendable {
 }
 
 /// 会った記録（Meeting）とイベントの紐付け
-public enum EventAssignment: Codable, Equatable, Sendable {
+public enum EventAssignment: Codable, Equatable, Hashable, Sendable {
     /// まだ決めていない
     case unassigned
     /// イベントに紐付いている
@@ -53,7 +53,7 @@ public enum EventAssignment: Codable, Equatable, Sendable {
 }
 
 /// 会った記録（1回分）
-public struct Meeting: Codable, Equatable, Identifiable, Sendable {
+public struct Meeting: Codable, Equatable, Hashable, Identifiable, Sendable {
     public let id: UUID
     /// 会った日時
     public let at: Date

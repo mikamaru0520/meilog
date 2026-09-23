@@ -1,7 +1,7 @@
 import Foundation
 
 /// 名刺カード。QR コードで交換する
-public struct Card: Codable, Equatable, Identifiable, Sendable {
+public struct Card: Codable, Equatable, Hashable, Identifiable, Sendable {
     /// 安定 ID。再会検出に使う
     public let id: UUID
     /// 名前
@@ -33,7 +33,7 @@ public struct Card: Codable, Equatable, Identifiable, Sendable {
 }
 
 /// SNS や Web サイトへのリンク
-public struct Link: Codable, Equatable, Sendable {
+public struct Link: Codable, Equatable, Hashable, Sendable {
     public enum Kind: String, Codable, Sendable {
         case github
         case x
@@ -52,7 +52,7 @@ public struct Link: Codable, Equatable, Sendable {
 }
 
 /// カードのデザイン（パレットと模様）
-public struct CardStyle: Codable, Equatable, Sendable {
+public struct CardStyle: Codable, Equatable, Hashable, Sendable {
     /// パレット ID。色の組み合わせを決める
     public var paletteID: Int
     /// パターン ID。模様の種類を決める

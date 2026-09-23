@@ -31,24 +31,86 @@ struct EncounterListView: View {
                     }
                 } else {
                     List {
-                        ForEach(store.state.filteredEncounters) { encounter in
-                            EncounterRow(encounter: encounter)
-                        }
-                        .onDelete { indexSet in
-                            for index in indexSet {
-                                let encounter = store.state.filteredEncounters[index]
-                                store.send(.deleteRequested(encounterID: encounter.id))
+                        // 未割り当て・推測の件数バッジ
+                        if store.state.unassignedCount > 0 || store.state.inferredCount > 0 {
+                            Section {
+                                if store.state.unassignedCount > 0 {
+                                    HStack {
+                                        Label("未割り当て", systemImage: "questionmark.circle")
+                                        Spacer()
+                                        Text("\(store.state.unassignedCount)")
+                                            .foregroundStyle(.secondary)
+                                            .badge(store.state.unassignedCount)
+                                    }
+                                }
+                                if store.state.inferredCount > 0 {
+                                    HStack {
+                                        Label("推測", systemImage: "sparkles")
+                                        Spacer()
+                                        Text("\(store.state.inferredCount)")
+                                            .foregroundStyle(.secondary)
+                                            .badge(store.state.inferredCount)
+                                    }
+                                }
+                            } header: {
+                                Text("整理が必要")
                             }
+                        }
+
+                        Section {
+                            ForEach(store.state.filteredEncounters) { encounter in
+                                NavigationLink(value: encounter) {
+                                    EncounterRow(encounter: encounter)
+                                }
+                            }
+                            .onDelete { indexSet in
+                                for index in indexSet {
+                                    let encounter = store.state.filteredEncounters[index]
+                                    store.send(.deleteRequested(encounterID: encounter.id))
+                                }
+                            }
+                        } header: {
+                            Text("カード一覧")
                         }
                     }
                 }
             }
             .navigationTitle("受け取ったカード")
+            .navigationDestination(for: Encounter.self) { encounter in
+                EncounterDetailView(store: store, encounterID: encounter.id)
+            }
             .searchable(text: $searchText, prompt: "名前、肩書き、イベントで検索")
             .onChange(of: searchText) { _, newValue in
                 store.send(.queryChanged(newValue))
             }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    if !store.state.allEvents.isEmpty {
+                        Menu {
+                            Button {
+                                store.send(.eventFilterChanged(nil))
+                            } label: {
+                                Label("すべて", systemImage: "list.bullet")
+                            }
+
+                            Divider()
+
+                            ForEach(store.state.allEvents) { event in
+                                Button {
+                                    store.send(.eventFilterChanged(event.id))
+                                } label: {
+                                    Label(event.name, systemImage: "calendar")
+                                }
+                            }
+                        } label: {
+                            Label(
+                                store.state.eventFilter == nil ? "すべて" : (store.state.allEvents.first(where: { $0.id == store.state.eventFilter })?.name ?? "フィルタ"),
+                                systemImage: "line.3.horizontal.decrease.circle"
+                            )
+                        }
+                    }
+                }
+
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         showingScanner = true

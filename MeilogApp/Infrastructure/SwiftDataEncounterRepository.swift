@@ -3,7 +3,7 @@ import SwiftData
 import MeilogCore
 
 /// SwiftData を使った EncounterRepository の実装
-actor SwiftDataEncounterRepository: EncounterRepository {
+final class SwiftDataEncounterRepository: EncounterRepository {
     private let modelContainer: ModelContainer
 
     init(modelContainer: ModelContainer) {

@@ -591,4 +591,54 @@ struct EncounterListTests {
 
         #expect(state.inferredCount == 1)
     }
+
+    // MARK: - noteUpdated のテスト
+
+    @Test("noteUpdated でメモが更新される")
+    func noteUpdated() {
+        let encounterID = UUID()
+        let encounter = Encounter(
+            id: encounterID,
+            card: makeCard(name: "Alice"),
+            meetings: [],
+            note: "古いメモ",
+            avatarState: .notReceived
+        )
+
+        let state = EncounterListState(encounters: [encounter])
+
+        let (newState, effects) = reduce(state, .noteUpdated(encounterID: encounterID, note: "新しいメモ"))
+
+        // メモが更新されている
+        #expect(newState.encounters.first?.note == "新しいメモ")
+
+        // persist Effect が発行されている
+        #expect(effects.count == 1)
+        if case .persist(let persistedEncounter) = effects[0] {
+            #expect(persistedEncounter.note == "新しいメモ")
+        } else {
+            Issue.record("Expected .persist effect")
+        }
+    }
+
+    @Test("noteUpdated で存在しない Encounter は無視される")
+    func noteUpdatedNonExistent() {
+        let encounter = Encounter(
+            id: UUID(),
+            card: makeCard(name: "Alice"),
+            meetings: [],
+            note: "メモ",
+            avatarState: .notReceived
+        )
+
+        let state = EncounterListState(encounters: [encounter])
+
+        let (newState, effects) = reduce(state, .noteUpdated(encounterID: UUID(), note: "新しいメモ"))
+
+        // 状態は変わっていない
+        #expect(newState.encounters.first?.note == "メモ")
+
+        // Effect は発行されていない
+        #expect(effects.isEmpty)
+    }
 }

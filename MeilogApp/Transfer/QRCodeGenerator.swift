@@ -5,7 +5,7 @@ import MeilogCore
 
 /// QR コード生成
 enum QRCodeGenerator {
-    /// CardEnvelope から QR コード画像を生成する
+    /// CardEnvelope から QR コード画像を生成する（非同期）
     ///
     /// - Parameters:
     ///   - envelope: エンコードする CardEnvelope
@@ -15,33 +15,36 @@ enum QRCodeGenerator {
     static func generateQRCode(
         from envelope: CardEnvelope,
         correctionLevel: String = "M"
-    ) throws -> UIImage {
-        // CardPayload.encode で URL 文字列を生成
-        let urlString = try CardPayload.encode(envelope)
+    ) async throws -> UIImage {
+        // すべての処理をバックグラウンドで実行
+        return try await Task.detached {
+            // CardPayload.encode で URL 文字列を生成
+            let urlString = try CardPayload.encode(envelope)
 
-        guard let data = urlString.data(using: .utf8) else {
-            throw CardPayloadError.malformed
-        }
+            guard let data = urlString.data(using: .utf8) else {
+                throw CardPayloadError.malformed
+            }
 
-        // CIQRCodeGenerator で QR コードを生成
-        let context = CIContext()
-        let filter = CIFilter.qrCodeGenerator()
-        filter.message = data
-        filter.correctionLevel = correctionLevel
+            // CIQRCodeGenerator で QR コードを生成
+            let context = CIContext()
+            let filter = CIFilter.qrCodeGenerator()
+            filter.message = data
+            filter.correctionLevel = correctionLevel
 
-        guard let outputImage = filter.outputImage else {
-            throw CardPayloadError.malformed
-        }
+            guard let outputImage = filter.outputImage else {
+                throw CardPayloadError.malformed
+            }
 
-        // QR コードを拡大（デフォルトのサイズは小さすぎるため）
-        let transform = CGAffineTransform(scaleX: 10, y: 10)
-        let scaledImage = outputImage.transformed(by: transform)
+            // QR コードを拡大（デフォルトのサイズは小さすぎるため）
+            let transform = CGAffineTransform(scaleX: 10, y: 10)
+            let scaledImage = outputImage.transformed(by: transform)
 
-        guard let cgImage = context.createCGImage(scaledImage, from: scaledImage.extent) else {
-            throw CardPayloadError.malformed
-        }
+            guard let cgImage = context.createCGImage(scaledImage, from: scaledImage.extent) else {
+                throw CardPayloadError.malformed
+            }
 
-        return UIImage(cgImage: cgImage)
+            return UIImage(cgImage: cgImage)
+        }.value
     }
 
     /// QR コードの中央にアイコン画像を合成する

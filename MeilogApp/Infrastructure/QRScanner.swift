@@ -1,4 +1,4 @@
-import AVFoundation
+@preconcurrency import AVFoundation
 import SwiftUI
 
 /// QR コードスキャナー
@@ -18,8 +18,10 @@ final class QRScanner: NSObject {
     /// カメラ権限の状態
     private(set) var authorizationStatus: AuthorizationStatus = .notDetermined
 
-    private let captureSession = AVCaptureSession()
+    @ObservationIgnored
+    nonisolated(unsafe) private let captureSession = AVCaptureSession()
     private var videoPreviewLayer: AVCaptureVideoPreviewLayer?
+    private var isSessionConfigured = false
 
     /// カメラ権限をリクエストする
     func requestAuthorization() async {
@@ -44,45 +46,54 @@ final class QRScanner: NSObject {
             throw QRScannerError.notAuthorized
         }
 
-        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else {
-            throw QRScannerError.noCameraAvailable
-        }
-
-        let videoInput: AVCaptureDeviceInput
-        do {
-            videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
-        } catch {
-            throw QRScannerError.inputFailed
-        }
-
-        if captureSession.canAddInput(videoInput) {
-            captureSession.addInput(videoInput)
-        } else {
-            throw QRScannerError.inputFailed
-        }
-
-        let metadataOutput = AVCaptureMetadataOutput()
-
-        if captureSession.canAddOutput(metadataOutput) {
-            captureSession.addOutput(metadataOutput)
-
-            metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
-            metadataOutput.metadataObjectTypes = [.qr]
-        } else {
-            throw QRScannerError.outputFailed
-        }
-
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self else { return }
-            MainActor.assumeIsolated {
-                self.captureSession.startRunning()
+        // セッションがまだ設定されていない場合のみ設定
+        if !isSessionConfigured {
+            guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else {
+                throw QRScannerError.noCameraAvailable
             }
+
+            let videoInput: AVCaptureDeviceInput
+            do {
+                videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
+            } catch {
+                throw QRScannerError.inputFailed
+            }
+
+            captureSession.beginConfiguration()
+
+            if captureSession.canAddInput(videoInput) {
+                captureSession.addInput(videoInput)
+            } else {
+                captureSession.commitConfiguration()
+                throw QRScannerError.inputFailed
+            }
+
+            let metadataOutput = AVCaptureMetadataOutput()
+
+            if captureSession.canAddOutput(metadataOutput) {
+                captureSession.addOutput(metadataOutput)
+                metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
+                metadataOutput.metadataObjectTypes = [.qr]
+            } else {
+                captureSession.commitConfiguration()
+                throw QRScannerError.outputFailed
+            }
+
+            captureSession.commitConfiguration()
+            isSessionConfigured = true
+        }
+
+        // セッションを開始
+        DispatchQueue.global(qos: .userInitiated).async { [captureSession] in
+            captureSession.startRunning()
         }
     }
 
     /// スキャンを停止する
     func stopScanning() {
-        captureSession.stopRunning()
+        DispatchQueue.global(qos: .userInitiated).async { [captureSession] in
+            captureSession.stopRunning()
+        }
     }
 
     /// プレビューレイヤーを取得する
@@ -115,8 +126,7 @@ extension QRScanner: AVCaptureMetadataOutputObjectsDelegate {
            let readableObject = metadataObject as? AVMetadataMachineReadableCodeObject,
            let stringValue = readableObject.stringValue {
 
-            // AVFoundation のデリゲートは通常メインスレッドで呼ばれる
-            MainActor.assumeIsolated {
+            Task { @MainActor in
                 self.scannedCode = stringValue
                 self.stopScanning()
             }

@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import UIKit
 import MeilogCore
 
 /// 自分のカードと直近のイベントを管理する Store

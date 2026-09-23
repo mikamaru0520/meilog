@@ -11,7 +11,7 @@ struct RootView: View {
         TabView {
             MyCardView(store: myCardStore)
                 .tabItem {
-                    Label("自分のカード", systemImage: "person.crop.rectangle")
+                    Label("カード", systemImage: "person.crop.rectangle")
                 }
 
             if let encounterListStore = encounterListStore {

@@ -12,45 +12,65 @@ public struct EncounterListState: Equatable, Sendable {
     /// 検索クエリ
     public var query: String = ""
 
+    /// イベントフィルタ（nil = すべて表示）
+    public var eventFilter: UUID? = nil
+
     public init(
         encounters: [Encounter] = [],
         recentEvent: MeetupEvent? = nil,
-        query: String = ""
+        query: String = "",
+        eventFilter: UUID? = nil
     ) {
         self.encounters = encounters
         self.recentEvent = recentEvent
         self.query = query
+        self.eventFilter = eventFilter
     }
 
     /// フィルタリングされた Encounter 一覧
     public var filteredEncounters: [Encounter] {
-        if query.isEmpty {
-            return encounters
-        }
+        var result = encounters
 
-        let lowercasedQuery = query.lowercased()
-        return encounters.filter { encounter in
-            // 名前で検索
-            if encounter.card.name.lowercased().contains(lowercasedQuery) {
-                return true
-            }
-
-            // 肩書きで検索
-            if let title = encounter.card.title,
-               title.lowercased().contains(lowercasedQuery) {
-                return true
-            }
-
-            // イベント名で検索
-            for meeting in encounter.meetings {
-                if case .assigned(let event, _) = meeting.event,
-                   event.name.lowercased().contains(lowercasedQuery) {
-                    return true
+        // イベントフィルタを適用
+        if let eventFilterID = eventFilter {
+            result = result.filter { encounter in
+                encounter.meetings.contains { meeting in
+                    if case .assigned(let event, _) = meeting.event {
+                        return event.id == eventFilterID
+                    }
+                    return false
                 }
             }
-
-            return false
         }
+
+        // 検索クエリを適用
+        if !query.isEmpty {
+            let lowercasedQuery = query.lowercased()
+            result = result.filter { encounter in
+                // 名前で検索
+                if encounter.card.name.lowercased().contains(lowercasedQuery) {
+                    return true
+                }
+
+                // 肩書きで検索
+                if let title = encounter.card.title,
+                   title.lowercased().contains(lowercasedQuery) {
+                    return true
+                }
+
+                // イベント名で検索
+                for meeting in encounter.meetings {
+                    if case .assigned(let event, _) = meeting.event,
+                       event.name.lowercased().contains(lowercasedQuery) {
+                        return true
+                    }
+                }
+
+                return false
+            }
+        }
+
+        return result
     }
 
     /// 未割り当て（unassigned）の Meeting の数
@@ -76,6 +96,21 @@ public struct EncounterListState: Equatable, Sendable {
             }.count
         }
     }
+
+    /// すべてのイベント一覧（重複なし、日付の新しい順）
+    public var allEvents: [MeetupEvent] {
+        var eventsDict: [UUID: MeetupEvent] = [:]
+
+        for encounter in encounters {
+            for meeting in encounter.meetings {
+                if case .assigned(let event, _) = meeting.event {
+                    eventsDict[event.id] = event
+                }
+            }
+        }
+
+        return eventsDict.values.sorted { $0.date > $1.date }
+    }
 }
 
 // MARK: - Intent
@@ -89,6 +124,9 @@ public enum EncounterListIntent: Sendable {
 
     /// 検索クエリが変更された
     case queryChanged(String)
+
+    /// イベントフィルタが変更された
+    case eventFilterChanged(UUID?)
 
     /// QR からカードを受信した
     case cardReceived(CardEnvelope, now: Date, newID: UUID, calendar: Calendar)
@@ -104,6 +142,9 @@ public enum EncounterListIntent: Sendable {
 
     /// 指定した Meeting を「イベント外」にマークする
     case markAsNoEvent(meetingIDs: [UUID])
+
+    /// Encounter のメモを更新する
+    case noteUpdated(encounterID: UUID, note: String)
 
     /// Encounter の削除が要求された
     case deleteRequested(encounterID: UUID)
@@ -158,6 +199,9 @@ public func reduce(
 
     case let .queryChanged(query):
         state.query = query
+
+    case let .eventFilterChanged(eventID):
+        state.eventFilter = eventID
 
     case let .cardReceived(envelope, now, newID, calendar):
         // 再会検出: 同じ card.id を持つ Encounter を探す
@@ -298,6 +342,17 @@ public func reduce(
 
         // 更新された Encounter を永続化
         for encounter in updatedEncounters {
+            effects.append(.persist(encounter))
+        }
+
+    case let .noteUpdated(encounterID, note):
+        // Encounter のメモを更新
+        if let index = state.encounters.firstIndex(where: { $0.id == encounterID }) {
+            var encounter = state.encounters[index]
+            encounter.note = note
+            state.encounters[index] = encounter
+
+            // 永続化
             effects.append(.persist(encounter))
         }
 
