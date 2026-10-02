@@ -35,6 +35,13 @@
 	<string>1</string>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_meilog._tcp</string>
+		<string>_meilog._udp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>近くの人とカードを交換するために、ローカルネットワークへのアクセスが必要です</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

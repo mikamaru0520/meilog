@@ -6,7 +6,7 @@ public struct EncounterListState: Equatable, Sendable {
     /// すべての Encounter（最後に会った日時の新しい順）
     public var encounters: [Encounter] = []
 
-    /// 直近のイベント（3段フォールバックで使う）
+    /// 直近のイベント（現在は使用しない。将来の拡張用に保持）
     public var recentEvent: MeetupEvent?
 
     /// 検索クエリ
@@ -128,14 +128,8 @@ public enum EncounterListIntent: Sendable {
     /// イベントフィルタが変更された
     case eventFilterChanged(UUID?)
 
-    /// QR からカードを受信した
+    /// Network.framework でカードを受信した
     case cardReceived(CardEnvelope, now: Date, newID: UUID, calendar: Calendar)
-
-    /// アイコン画像が届いた
-    case avatarArrived(encounterID: UUID, data: Data)
-
-    /// アイコン取得に失敗した
-    case avatarFailed(encounterID: UUID)
 
     /// 指定した Meeting をイベントに割り当てる
     case assignEvent(meetingIDs: [UUID], event: MeetupEvent)
@@ -240,35 +234,11 @@ public func reduce(
                 id: newID,
                 card: envelope.card,
                 meetings: [meeting],
-                note: "",
-                avatarState: envelope.card.avatar != nil ? .received : .unavailable
+                note: ""
             )
 
             // encounters の先頭に追加（新しい順）
             state.encounters.insert(encounter, at: 0)
-
-            // 永続化 Effect を発行
-            effects.append(.persist(encounter))
-        }
-
-    case let .avatarArrived(encounterID, data):
-        // Encounter を探して avatar を更新
-        if let index = state.encounters.firstIndex(where: { $0.id == encounterID }) {
-            var encounter = state.encounters[index]
-            encounter.card.avatar = data
-            encounter.avatarState = .received
-            state.encounters[index] = encounter
-
-            // 永続化 Effect を発行
-            effects.append(.persist(encounter))
-        }
-
-    case let .avatarFailed(encounterID):
-        // Encounter を探して avatarState を unavailable に更新
-        if let index = state.encounters.firstIndex(where: { $0.id == encounterID }) {
-            var encounter = state.encounters[index]
-            encounter.avatarState = .unavailable
-            state.encounters[index] = encounter
 
             // 永続化 Effect を発行
             effects.append(.persist(encounter))

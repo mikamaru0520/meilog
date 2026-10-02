@@ -14,15 +14,37 @@
 
 ## 交換方式
 
-### AirDrop
+### Network.framework による近距離直接交換
 
-- カード情報を `.meilog` 拡張子の JSON ファイルとして AirDrop で送受信する
-- ファイルフォーマット: JSON（CardEnvelope を Codable でエンコード）
-- カスタム UTType: `com.example.meilog.card`（`public.json` に準拠）
-- アイコン画像も CardEnvelope に含めて送信する（別の転送手段は不要）
-- 受信側は `.onOpenURL` でファイルを受け取り、`CardPayload.decode` で JSON をパースする
-- 送信前に `UIActivityViewController` で AirDrop 共有シートを表示する
-- 送信側は CardSendView で確認画面を表示し、受信側は CardReceiveView でイベント選択画面を表示する
+MultipeerConnectivity は iOS 27 で非推奨になったため、Network.framework を使用する。
+
+#### 交換フロー
+
+1. **探索開始**: 交換画面を開くと、`NWListener` で自分を広告し、`NWBrowser` で近くの相手を探す（どちらも `includePeerToPeer: true`）
+2. **一覧表示**: 画面には「近くにいる人」の一覧が表示される。各行は名前と、その人のカードの配色から生成した色の印
+3. **招待**: 相手を選ぶと招待が送信され、相手の画面に承認ダイアログが表示される
+4. **交換**: 承認されると双方向にカードを送り合い、両方に `Encounter` が保存される
+5. **アイコン転送**: アイコン画像もこの接続で一緒に送る（後追いの転送はしない）
+
+#### 技術詳細
+
+- **Bonjour サービスタイプ**: `_meilog._tcp`
+- **広告タイミング**: 交換画面を開いている間だけ。バックグラウンドでは広告も探索もしない
+- **データフォーマット**: JSON（CardEnvelope を Codable でエンコード）。card-payload.md の仕様に従う
+- **暗号化**: 最初は行わない。将来 passcode などを足せるよう、パラメータ生成は1箇所にまとめておく
+- **検証**: 受信したデータは必ず検証する（サイズ上限、文字数、件数）。悪意あるデータが来る前提で書く
+
+#### 接続状態の管理
+
+交換画面の状態遷移:
+
+- **探索中**: NWBrowser が近くの相手を探している
+- **招待中**: 相手に接続を試みている
+- **承認待ち**: 相手の承認を待っている
+- **接続中**: 接続が確立され、データ送受信の準備中
+- **送受信中**: カードとアイコンを送受信している
+- **完了**: 交換が成功した
+- **失敗**: タイムアウトまたはエラーが発生した
 
 ## モデル（MeishiCore/Model）
 
@@ -72,20 +94,15 @@ public struct Meeting: Codable, Equatable, Sendable {
     public var event: EventAssignment
 }
 
-public enum AvatarState: Codable, Equatable, Sendable {
-    case notReceived, received, unavailable
-}
-
 /// 相手1人分の記録。再会したら meetings が増える
 public struct Encounter: Codable, Equatable, Sendable {
     public let id: UUID
     public var card: Card                // 最新のスナップショット
     public var meetings: [Meeting]       // 新しい順
     public var note: String
-    public var avatarState: AvatarState
 }
 
-/// AirDrop で交換する情報のラッパー
+/// 交換するデータのラッパー
 public struct CardEnvelope: Codable, Equatable, Sendable {
     public var card: Card                // avatar を含む
     public var event: MeetupEvent?
@@ -94,18 +111,18 @@ public struct CardEnvelope: Codable, Equatable, Sendable {
 
 - `MeetupEvent` は ID 参照ではなく値で持つ。あとからイベント名を編集しても過去の記録は書き換わらない
 - 自分のカード（`Card`）と「直近のイベント」（`MeetupEvent?`）もアプリ内に保存する
+- `AvatarState` は削除（アイコン画像を交換時に一緒に送るため、状態管理は不要）
 
 ## 振る舞い（MeishiCore/Feature）
 
-### イベントの自動割り当て（3段フォールバック）
+### イベントの自動割り当て
 
 カード受信時に `Meeting.event` を決める。
 
-1. AirDrop ファイルにイベントが入っている → `.assigned(event, confidence: .confirmed)`
-2. 自分の「直近のイベント」の `date` が受信日と同じ日 → `.assigned(event, confidence: .inferred)`
-3. どちらもない → `.unassigned`
+1. 交換相手から届いたイベント情報がある → `.assigned(event, confidence: .confirmed)`
+2. ない場合 → `.unassigned`
 
-同じ日の判定は `Calendar` を引数で受け取る（テストでタイムゾーンを固定するため）。
+同じ日の判定は不要になった。ユーザーが「あとで整理」で手動で割り当てる。
 
 ### 再会検出
 
@@ -131,10 +148,9 @@ public enum EncounterListIntent: Sendable {
     case loaded([Encounter], recentEvent: MeetupEvent?)
     case queryChanged(String)
     case cardReceived(CardEnvelope, now: Date, newID: UUID, calendar: Calendar)
-    case avatarArrived(encounterID: UUID, data: Data)
-    case avatarFailed(encounterID: UUID)
     case assignEvent(meetingIDs: [UUID], event: MeetupEvent)
     case markAsNoEvent(meetingIDs: [UUID])
+    case noteUpdated(encounterID: UUID, note: String)
     case deleteRequested(encounterID: UUID)
 }
 
@@ -147,6 +163,35 @@ public enum EncounterListEffect: Equatable, Sendable {
 
 名前や細部は実装時に調整してよい。ただし「reduce は純粋」「副作用はデータ」は崩さない。
 
+### 交換画面の Intent と Effect の例
+
+```swift
+public enum ExchangeIntent: Sendable {
+    case appeared
+    case browsingStarted
+    case peerDiscovered(id: String, name: String, paletteID: Int)
+    case peerLost(id: String)
+    case inviteTapped(peerID: String)
+    case invitationReceived(from: String, name: String, paletteID: Int)
+    case invitationAccepted
+    case invitationDeclined
+    case dataReceived(CardEnvelope)
+    case exchangeCompleted
+    case exchangeFailed(Error)
+    case dismissed
+}
+
+public enum ExchangeEffect: Equatable, Sendable {
+    case startAdvertising(card: Card, event: MeetupEvent?)
+    case stopAdvertising
+    case startBrowsing
+    case stopBrowsing
+    case sendInvitation(to: String)
+    case sendData(CardEnvelope, to: String)
+    case saveEncounter(CardEnvelope)
+}
+```
+
 ### Port（MeishiCore/Port）
 
 ```swift
@@ -156,6 +201,8 @@ public protocol EncounterRepository: Sendable {
     func delete(id: UUID) async throws
 }
 ```
+
+Network.framework の実装は `Infrastructure/` に置き、Core には持ち込まない。
 
 ## アーキテクチャ
 
@@ -187,13 +234,14 @@ final class EncounterListStore {
 - `paletteID` → 実際の色、`patternID` → 描画コードの対応はアプリ側。未知の ID は 0 番にフォールバック
 - アイコンがない相手は、イニシャルとパレットで生成した図形を表示
 - 一覧から詳細への遷移に `matchedGeometryEffect`、スクロールに `scrollTransition`
+- 交換画面では、近くの人の一覧に配色から生成した色の印を表示する
 - Liquid Glass はカード面ではなく、ボタンやシート周りの操作系に限定（iOS 26 のみ）
 - UI の文言は日本語
 
 ## 権限
 
-- 特別な権限は不要（AirDrop は OS 標準機能）
-- 連絡先・位置情報・カメラ・ローカルネットワークは使わない
+- ローカルネットワーク（Bonjour サービスの探索と広告）: `NSLocalNetworkUsageDescription` と `NSBonjourServices` が必要
+- 連絡先・位置情報・カメラは使わない
 
 ## App Store に向けて
 
@@ -202,12 +250,12 @@ final class EncounterListStore {
 
 ## 作る順番
 
-1. `MeishiCore/Model` のモデル定義
+1. `MeishiCore/Model` のモデル定義（AvatarState を削除）
 2. `CardPayload` の encode / decode。往復テストとゴールデンベクタのテスト（イベントあり・なし）
-3. `reduce`: 3段フォールバック、再会検出、あとで整理、検索・絞り込み。テストで固める
+3. `reduce`: イベント割り当て（1段のみ）、再会検出、あとで整理、検索・絞り込み。テストで固める
 4. 自分のカードの作成・表示
-5. AirDrop 送信フロー（CardSendView、UIActivityViewController）
-6. AirDrop 受信フロー（CardReceiveView、.onOpenURL、Store、SwiftData の Repository）
+5. 交換画面の UI（近くの人の一覧、招待、承認ダイアログ）
+6. Network.framework による探索・広告・接続・送受信の実装
 7. 一覧・イベント別絞り込み・整理画面・遷移アニメーション
 8. TestFlight でもくもく会に配布
 
@@ -219,4 +267,4 @@ final class EncounterListStore {
 - ドメインと Universal Link: Web 対応を決めた時点で取る
 - NFC タグ、Wallet パス、iCloud 同期: Core に手を入れずに後から足せる
 - TCA: 自前 MVI で副作用やテストが辛くなったら検討
-- 相互交換（送信側の画像も送り返す）
+- 暗号化: 将来 passcode 入力で暗号化できるよう、パラメータ生成箇所は整理しておく

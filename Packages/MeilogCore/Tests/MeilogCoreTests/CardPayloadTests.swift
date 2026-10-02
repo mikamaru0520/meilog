@@ -88,7 +88,7 @@ import Foundation
     }
 }
 
-@Test func リンクが5件を超えるとエラーになる() {
+@Test func リンクが4件を超えるとエラーになる() {
     let card = Card(
         id: UUID(),
         name: "名前",
@@ -97,8 +97,7 @@ import Foundation
             Link(kind: .github, value: "b"),
             Link(kind: .github, value: "c"),
             Link(kind: .github, value: "d"),
-            Link(kind: .github, value: "e"),
-            Link(kind: .github, value: "f")  // 6件目
+            Link(kind: .github, value: "e")  // 5件目
         ],
         style: CardStyle(paletteID: 0, patternID: 0)
     )
@@ -107,4 +106,90 @@ import Foundation
     #expect(throws: CardPayloadError.constraintViolation) {
         try CardPayload.encode(envelope)
     }
+}
+
+// MARK: - ゴールデンベクタのテスト
+
+@Test func ゴールデンベクタ_イベントなし() throws {
+    let json = """
+    {
+      "card": {
+        "id": "8F1C2A34-5B6D-4E7F-8091-A2B3C4D5E6F7",
+        "name": "サンプル太郎",
+        "title": "iOSエンジニア",
+        "links": [
+          {
+            "kind": "github",
+            "value": "sample-taro"
+          }
+        ],
+        "style": {
+          "paletteID": 3,
+          "patternID": 7
+        }
+      }
+    }
+    """
+    let data = json.data(using: .utf8)!
+    let envelope = try CardPayload.decode(data)
+
+    #expect(envelope.card.id == UUID(uuidString: "8F1C2A34-5B6D-4E7F-8091-A2B3C4D5E6F7"))
+    #expect(envelope.card.name == "サンプル太郎")
+    #expect(envelope.card.title == "iOSエンジニア")
+    #expect(envelope.card.links.count == 1)
+    #expect(envelope.card.links[0].kind == .github)
+    #expect(envelope.card.links[0].value == "sample-taro")
+    #expect(envelope.card.style.paletteID == 3)
+    #expect(envelope.card.style.patternID == 7)
+    #expect(envelope.card.avatar == nil)
+    #expect(envelope.event == nil)
+}
+
+@Test func ゴールデンベクタ_イベントあり() throws {
+    let json = """
+    {
+      "card": {
+        "id": "8F1C2A34-5B6D-4E7F-8091-A2B3C4D5E6F7",
+        "name": "サンプル太郎",
+        "title": "iOSエンジニア",
+        "links": [
+          {
+            "kind": "github",
+            "value": "sample-taro"
+          },
+          {
+            "kind": "x",
+            "value": "sample_taro"
+          }
+        ],
+        "style": {
+          "paletteID": 3,
+          "patternID": 7
+        }
+      },
+      "event": {
+        "id": "0B7E4C21-9A3F-4D5E-8C6B-1F2A3B4C5D6E",
+        "name": "iOSDC Japan 2026",
+        "date": 1789743600
+      }
+    }
+    """
+    let data = json.data(using: .utf8)!
+    let envelope = try CardPayload.decode(data)
+
+    #expect(envelope.card.id == UUID(uuidString: "8F1C2A34-5B6D-4E7F-8091-A2B3C4D5E6F7"))
+    #expect(envelope.card.name == "サンプル太郎")
+    #expect(envelope.card.title == "iOSエンジニア")
+    #expect(envelope.card.links.count == 2)
+    #expect(envelope.card.links[0].kind == .github)
+    #expect(envelope.card.links[0].value == "sample-taro")
+    #expect(envelope.card.links[1].kind == .x)
+    #expect(envelope.card.links[1].value == "sample_taro")
+    #expect(envelope.card.style.paletteID == 3)
+    #expect(envelope.card.style.patternID == 7)
+    #expect(envelope.card.avatar == nil)
+    #expect(envelope.event?.id == UUID(uuidString: "0B7E4C21-9A3F-4D5E-8C6B-1F2A3B4C5D6E"))
+    #expect(envelope.event?.name == "iOSDC Japan 2026")
+    #expect(envelope.event?.date.timeIntervalSince1970 == 1789743600)
+    #expect(envelope.event?.venue == nil)
 }

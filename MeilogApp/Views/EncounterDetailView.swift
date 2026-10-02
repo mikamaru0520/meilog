@@ -7,7 +7,6 @@ import struct MeilogCore.MeetupEvent
 import struct MeilogCore.CardStyle
 import enum MeilogCore.EventAssignment
 import enum MeilogCore.Confidence
-import enum MeilogCore.AvatarState
 import protocol MeilogCore.EncounterRepository
 
 // SwiftUI.Link との衝突を避ける
@@ -30,7 +29,7 @@ struct EncounterDetailView: View {
             List {
             // カードプレビュー
             Section {
-                ReceivedCardPreview(card: encounter.card, avatarState: encounter.avatarState)
+                ReceivedCardPreview(card: encounter.card)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
             }
@@ -139,7 +138,6 @@ struct EncounterDetailView: View {
 /// 受け取ったカードのプレビュー
 private struct ReceivedCardPreview: View {
     let card: Card
-    let avatarState: AvatarState
 
     var body: some View {
         RoundedRectangle(cornerRadius: Radius.card)
@@ -165,8 +163,7 @@ private struct ReceivedCardPreview: View {
                         .fill(Colors.textPrimary)
                         .frame(width: 60, height: 60)
                         .overlay {
-                            if case .received = avatarState,
-                               let avatarData = card.avatar,
+                            if let avatarData = card.avatar,
                                let uiImage = UIImage(data: avatarData) {
                                 Image(uiImage: uiImage)
                                     .resizable()
@@ -176,12 +173,6 @@ private struct ReceivedCardPreview: View {
                                 Text(card.name.prefix(1))
                                     .font(Typography.cardName)
                                     .foregroundStyle(.white)
-                            }
-                        }
-                        .overlay {
-                            if case .notReceived = avatarState {
-                                ProgressView()
-                                    .tint(.white)
                             }
                         }
 
@@ -367,8 +358,7 @@ private struct MeetingRow: View {
                 event: .unassigned
             )
         ],
-        note: "とても良い人でした",
-        avatarState: .notReceived
+        note: "とても良い人でした"
     )
 
     let store = EncounterListStore(

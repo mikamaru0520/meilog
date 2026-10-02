@@ -17,9 +17,6 @@ final class EncounterEntity {
     /// メモ
     var note: String
 
-    /// アイコンの状態（"notReceived", "received", "unavailable"）
-    var avatarStateRaw: String
-
     /// 最後に会った日時（ソート用）
     var lastMetAt: Date?
 
@@ -28,14 +25,12 @@ final class EncounterEntity {
         cardData: Data,
         meetingsData: [Data],
         note: String,
-        avatarStateRaw: String,
         lastMetAt: Date?
     ) {
         self.id = id
         self.cardData = cardData
         self.meetingsData = meetingsData
         self.note = note
-        self.avatarStateRaw = avatarStateRaw
         self.lastMetAt = lastMetAt
     }
 }
@@ -48,19 +43,11 @@ extension EncounterEntity {
         let cardData = try JSONEncoder().encode(encounter.card)
         let meetingsData = try encounter.meetings.map { try JSONEncoder().encode($0) }
 
-        let avatarStateRaw: String
-        switch encounter.avatarState {
-        case .notReceived: avatarStateRaw = "notReceived"
-        case .received: avatarStateRaw = "received"
-        case .unavailable: avatarStateRaw = "unavailable"
-        }
-
         self.init(
             id: encounter.id,
             cardData: cardData,
             meetingsData: meetingsData,
             note: encounter.note,
-            avatarStateRaw: avatarStateRaw,
             lastMetAt: encounter.lastMetAt
         )
     }
@@ -70,19 +57,11 @@ extension EncounterEntity {
         let card = try JSONDecoder().decode(Card.self, from: cardData)
         let meetings = try meetingsData.map { try JSONDecoder().decode(Meeting.self, from: $0) }
 
-        let avatarState: AvatarState
-        switch avatarStateRaw {
-        case "received": avatarState = .received
-        case "unavailable": avatarState = .unavailable
-        default: avatarState = .notReceived
-        }
-
         return Encounter(
             id: id,
             card: card,
             meetings: meetings,
-            note: note,
-            avatarState: avatarState
+            note: note
         )
     }
 }

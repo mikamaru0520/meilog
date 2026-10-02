@@ -8,7 +8,7 @@ import MeilogCore
 final class EncounterListStore {
     private(set) var state = EncounterListState()
 
-    private let repository: EncounterRepository
+    let repository: EncounterRepository
     private let myCardStore: MyCardStore
     // Task.cancel() is thread-safe, and we don't need to observe this array
     @ObservationIgnored private var runningTasks: [Task<Void, Never>] = []

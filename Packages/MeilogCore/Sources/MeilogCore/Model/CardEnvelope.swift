@@ -1,6 +1,6 @@
 import Foundation
 
-/// AirDrop で交換する情報のラッパー
+/// Network.framework で交換する情報のラッパー
 public struct CardEnvelope: Codable, Equatable, Sendable {
     /// カード本体（avatar を含む）
     public var card: Card

@@ -72,16 +72,14 @@ struct EncounterListTests {
             id: UUID(),
             card: makeCard(name: "Alice"),
             meetings: [Meeting(id: UUID(), at: oldDate, event: .unassigned)],
-            note: "",
-            avatarState: .notReceived
+            note: ""
         )
 
         let encounterNew = Encounter(
             id: UUID(),
             card: makeCard(name: "Bob"),
             meetings: [Meeting(id: UUID(), at: newDate, event: .unassigned)],
-            note: "",
-            avatarState: .notReceived
+            note: ""
         )
 
         let state = EncounterListState()
@@ -110,16 +108,14 @@ struct EncounterListTests {
             id: UUID(),
             card: makeCard(name: "Alice"),
             meetings: [],
-            note: "",
-            avatarState: .notReceived
+            note: ""
         )
 
         let encounterBob = Encounter(
             id: UUID(),
             card: makeCard(name: "Bob"),
             meetings: [],
-            note: "",
-            avatarState: .notReceived
+            note: ""
         )
 
         var state = EncounterListState(encounters: [encounterAlice, encounterBob])
@@ -135,16 +131,14 @@ struct EncounterListTests {
             id: UUID(),
             card: makeCard(name: "Alice", title: "iOS Developer"),
             meetings: [],
-            note: "",
-            avatarState: .notReceived
+            note: ""
         )
 
         let encounterWithoutTitle = Encounter(
             id: UUID(),
             card: makeCard(name: "Bob"),
             meetings: [],
-            note: "",
-            avatarState: .notReceived
+            note: ""
         )
 
         var state = EncounterListState(encounters: [encounterWithTitle, encounterWithoutTitle])
@@ -163,16 +157,14 @@ struct EncounterListTests {
             id: UUID(),
             card: makeCard(name: "Alice"),
             meetings: [meeting],
-            note: "",
-            avatarState: .notReceived
+            note: ""
         )
 
         let encounterWithoutEvent = Encounter(
             id: UUID(),
             card: makeCard(name: "Bob"),
             meetings: [],
-            note: "",
-            avatarState: .notReceived
+            note: ""
         )
 
         var state = EncounterListState(encounters: [encounterWithEvent, encounterWithoutEvent])
@@ -297,8 +289,7 @@ struct EncounterListTests {
             id: UUID(),
             card: oldCard,
             meetings: [oldMeeting],
-            note: "メモ",
-            avatarState: .received
+            note: "メモ"
         )
 
         let state = EncounterListState(encounters: [existingEncounter])
@@ -337,8 +328,7 @@ struct EncounterListTests {
             id: UUID(),
             card: makeCard(id: UUID(), name: "Alice"),
             meetings: [Meeting(id: UUID(), at: date(2026, 1, 1), event: .unassigned)],
-            note: "",
-            avatarState: .notReceived
+            note: ""
         )
 
         let state = EncounterListState(encounters: [existingEncounter])
@@ -360,57 +350,6 @@ struct EncounterListTests {
         #expect(newState.encounters[1].card.name == "Alice")
     }
 
-    // MARK: - avatarArrived のテスト
-
-    @Test("avatarArrived でアイコンが保存され avatarState が received になる")
-    func avatarArrived_savesAvatarAndUpdatesState() {
-        let encounterID = UUID()
-        let encounter = Encounter(
-            id: encounterID,
-            card: makeCard(name: "Alice"),
-            meetings: [],
-            note: "",
-            avatarState: .notReceived
-        )
-
-        let state = EncounterListState(encounters: [encounter])
-
-        let avatarData = Data([1, 2, 3])
-
-        let (newState, effects) = reduce(state, .avatarArrived(encounterID: encounterID, data: avatarData))
-
-        #expect(newState.encounters.count == 1)
-        #expect(newState.encounters[0].card.avatar == avatarData)
-        #expect(newState.encounters[0].avatarState == .received)
-
-        // persist Effect が発行される
-        #expect(effects.contains(.persist(newState.encounters[0])))
-    }
-
-    // MARK: - avatarFailed のテスト
-
-    @Test("avatarFailed で avatarState が unavailable になる")
-    func avatarFailed_updatesStateToUnavailable() {
-        let encounterID = UUID()
-        let encounter = Encounter(
-            id: encounterID,
-            card: makeCard(name: "Alice"),
-            meetings: [],
-            note: "",
-            avatarState: .notReceived
-        )
-
-        let state = EncounterListState(encounters: [encounter])
-
-        let (newState, effects) = reduce(state, .avatarFailed(encounterID: encounterID))
-
-        #expect(newState.encounters.count == 1)
-        #expect(newState.encounters[0].avatarState == .unavailable)
-
-        // persist Effect が発行される
-        #expect(effects.contains(.persist(newState.encounters[0])))
-    }
-
     // MARK: - assignEvent のテスト
 
     @Test("assignEvent で指定した Meeting がイベントに割り当てられる")
@@ -422,8 +361,7 @@ struct EncounterListTests {
             id: UUID(),
             card: makeCard(name: "Alice"),
             meetings: [meeting1, meeting2],
-            note: "",
-            avatarState: .notReceived
+            note: ""
         )
 
         let state = EncounterListState(encounters: [encounter])
@@ -467,8 +405,7 @@ struct EncounterListTests {
             id: UUID(),
             card: makeCard(name: "Alice"),
             meetings: [meeting1, meeting2],
-            note: "",
-            avatarState: .notReceived
+            note: ""
         )
 
         let state = EncounterListState(encounters: [encounter])
@@ -508,8 +445,7 @@ struct EncounterListTests {
             id: encounterID,
             card: makeCard(name: "Alice"),
             meetings: [],
-            note: "",
-            avatarState: .notReceived
+            note: ""
         )
 
         let state = EncounterListState(encounters: [encounter])
@@ -538,8 +474,7 @@ struct EncounterListTests {
             id: UUID(),
             card: makeCard(name: "Alice"),
             meetings: [meeting1, meeting2, meeting3],
-            note: "",
-            avatarState: .notReceived
+            note: ""
         )
 
         let state = EncounterListState(encounters: [encounter])
@@ -567,8 +502,7 @@ struct EncounterListTests {
             id: UUID(),
             card: makeCard(name: "Alice"),
             meetings: [meeting1, meeting2, meeting3],
-            note: "",
-            avatarState: .notReceived
+            note: ""
         )
 
         let state = EncounterListState(encounters: [encounter])
@@ -585,8 +519,7 @@ struct EncounterListTests {
             id: encounterID,
             card: makeCard(name: "Alice"),
             meetings: [],
-            note: "古いメモ",
-            avatarState: .notReceived
+            note: "古いメモ"
         )
 
         let state = EncounterListState(encounters: [encounter])
@@ -611,8 +544,7 @@ struct EncounterListTests {
             id: UUID(),
             card: makeCard(name: "Alice"),
             meetings: [],
-            note: "メモ",
-            avatarState: .notReceived
+            note: "メモ"
         )
 
         let state = EncounterListState(encounters: [encounter])

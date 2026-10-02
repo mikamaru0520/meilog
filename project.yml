@@ -45,6 +45,10 @@ targets:
           UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        NSLocalNetworkUsageDescription: 近くの人とカードを交換するために、ローカルネットワークへのアクセスが必要です
+        NSBonjourServices:
+          - _meilog._tcp
+          - _meilog._udp
         CFBundleDocumentTypes:
           - CFBundleTypeName: Meilog Card
             LSItemContentTypes:

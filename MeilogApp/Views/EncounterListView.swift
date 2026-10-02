@@ -203,8 +203,7 @@ private struct EncounterRow: View {
                     )
                 )
             ],
-            note: "",
-            avatarState: .notReceived
+            note: ""
         )
 
         s.send(.loaded([encounter], recentEvent: nil))

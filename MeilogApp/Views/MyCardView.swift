@@ -8,7 +8,8 @@ struct MyCardView: View {
     @Bindable var store: MyCardStore
     @Bindable var encounterListStore: EncounterListStore
     @State private var showingEdit = false
-    @State private var showingSend = false
+    @State private var showingExchange = false
+    @State private var exchangeStore: ExchangeStore?
 
     var body: some View {
         NavigationStack {
@@ -39,9 +40,9 @@ struct MyCardView: View {
                             .padding(.horizontal, Space.md)
                         }
 
-                        // カード送信ボタン
+                        // カード交換ボタン
                         Button {
-                            showingSend = true
+                            showingExchange = true
                         } label: {
                             Label("カードを送る", systemImage: "square.and.arrow.up")
                                 .font(Typography.button)
@@ -67,8 +68,23 @@ struct MyCardView: View {
                 .sheet(isPresented: $showingEdit) {
                     CardEditView(store: store)
                 }
-                .sheet(isPresented: $showingSend) {
-                    CardSendView(store: store)
+                .task {
+                    if exchangeStore == nil {
+                        exchangeStore = ExchangeStore(
+                            repository: encounterListStore.repository,
+                            myCardStore: store
+                        )
+                    }
+                }
+                .sheet(isPresented: $showingExchange) {
+                    if let card = store.myCard,
+                       let exchangeStore = exchangeStore {
+                        ExchangeView(
+                            store: exchangeStore,
+                            myCard: card,
+                            recentEvent: store.recentEvent
+                        )
+                    }
                 }
             } else {
                 // 初回起動時

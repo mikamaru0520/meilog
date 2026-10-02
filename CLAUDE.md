@@ -1,6 +1,6 @@
 # Meilog — 勉強会で会った人を記録する名刺交換アプリ
 
-iOS ネイティブ（SwiftUI）、自前 MVI、サーバーなし。AirDrop でカードを交換する。
+iOS ネイティブ（SwiftUI）、自前 MVI、サーバーなし。Network.framework で近距離直接通信してカードを交換する。
 設計の全体像は下の design.md に書いてある。判断に迷ったら必ずそこに戻ること。
 
 @docs/design.md
@@ -28,7 +28,7 @@ MeilogApp/                  アプリターゲット（Swift 6 言語モード�
 ├── Views/                  SwiftUI の View
 ├── Stores/                 @MainActor @Observable の Store。Effect の実行
 ├── Infrastructure/         SwiftData の実装
-├── Transfer/               AirDrop 送受信、カスタム UTType
+├── Transfer/               Network.framework 接続管理、カスタム UTType
 ├── DesignSystem/           デザイントークン（Space, Typography, Colors, Palette, Radius, Shadow）
 └── Assets.xcassets/        カラーセット、AppIcon
 Packages/MeilogCore/        Swift Package（Swift 6 言語モード）
@@ -87,7 +87,7 @@ docs/                       design.md, card-payload.md, design-system.md
 
 - 外部ライブラリの追加（TCA、KMP を含む）
 - サーバー、ドメイン、Universal Link、Web ページ
-- 特別な権限の要求（カメラ、連絡先、位置情報、ローカルネットワークなど）
+- 不要な権限の要求（カメラ、連絡先、位置情報など）
 - `Meishi.xcodeproj` の直接編集
 - Concurrency の警告を `@preconcurrency` や `nonisolated(unsafe)` で黙らせること（直せないときは相談する）
 

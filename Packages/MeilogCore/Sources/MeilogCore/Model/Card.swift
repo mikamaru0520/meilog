@@ -1,6 +1,6 @@
 import Foundation
 
-/// 名刺カード。QR コードで交換する
+/// 名刺カード。Network.framework で交換する
 public struct Card: Codable, Equatable, Hashable, Identifiable, Sendable {
     /// 安定 ID。再会検出に使う
     public let id: UUID
@@ -12,7 +12,7 @@ public struct Card: Codable, Equatable, Hashable, Identifiable, Sendable {
     public var links: [Link]
     /// カードのデザイン
     public var style: CardStyle
-    /// アイコン画像（QR には載せない。MultipeerConnectivity で届く）
+    /// アイコン画像（交換時に一緒に送る）
     public var avatar: Data?
 
     public init(

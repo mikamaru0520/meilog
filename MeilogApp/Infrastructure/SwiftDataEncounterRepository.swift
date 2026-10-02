@@ -41,7 +41,6 @@ final class SwiftDataEncounterRepository: EncounterRepository {
                 existing.cardData = entity.cardData
                 existing.meetingsData = entity.meetingsData
                 existing.note = entity.note
-                existing.avatarStateRaw = entity.avatarStateRaw
                 existing.lastMetAt = entity.lastMetAt
             } else {
                 // 新規作成
